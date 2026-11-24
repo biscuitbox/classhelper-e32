@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#171A2E">
+<title>2차시 · 남은 시간을 보여 주는 타이머 신호등</title>
+<style>
+:root{
+  --ink:#171A2E; --ink-2:#232846; --paper:#F3F3F8; --white:#fff;
+  --accent:#C8430E; --accent-dim:#A8370B; --accent-soft:#FFF0E8;
+  --spark:#FFD400; --line:#DCDCE8; --muted:#62648A; --dim:#A8ABD0;
+}
+*{box-sizing:border-box}
+/* 한글이 단어 중간에서 끊기지 않게 — '메뉴에서'의 '서'만 내려가는 일을 막는다 */
+h2,.sub,.note,.big,.lead,figcaption,ul.pts li,.step b,.step span,.tlrow .d,
+.cover h1,.cover p,.shotbox .body{word-break:keep-all;overflow-wrap:break-word}
+html,body{height:100%}
+body{margin:0;background:var(--paper);color:var(--ink);overflow:hidden;
+  font-family:-apple-system,"Malgun Gothic","Apple SD Gothic Neo",sans-serif}
+.deck{height:100vh;position:relative}
+.stage{position:absolute;inset:0;overflow:hidden}
+.slide{position:absolute;inset:0;display:none;flex-direction:column;justify-content:center;
+  padding:11vh 5vw 8vh;overflow:auto}
+.slide.on{display:flex}
+
+/* 차시 표지 — 슬라이드 모서리에 고정, 본문 흐름 밖 */
+.mark{position:absolute;left:5vw;top:4.4vh;display:flex;align-items:center;
+  gap:clamp(9px,.9vw,15px);font-size:clamp(13px,1.35vw,21px);color:var(--muted)}
+.mark .n{background:var(--ink);color:var(--paper);font-weight:700;
+  width:clamp(26px,2.5vw,40px);height:clamp(26px,2.5vw,40px);border-radius:4px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:clamp(14px,1.45vw,23px);font-variant-numeric:tabular-nums}
+
+h2{font-size:clamp(28px,4.4vw,72px);line-height:1.18;margin:0 0 clamp(16px,2.6vh,38px);
+  letter-spacing:-.035em;font-weight:700}
+.sub{font-size:clamp(17px,2.2vw,36px);line-height:1.55;color:var(--muted);margin:0}
+.sub b{color:var(--ink);font-weight:700}
+
+/* 목록 — 상자가 아니라 가로줄로 나뉜 행 */
+ul.pts{list-style:none;margin:0;padding:0;border-top:1px solid var(--line)}
+ul.pts li{border-bottom:1px solid var(--line);padding:clamp(13px,2.1vh,27px) 0
+  clamp(13px,2.1vh,27px) clamp(26px,2.6vw,46px);position:relative;
+  font-size:clamp(17px,2.3vw,41px);line-height:1.38}
+ul.pts li::before{content:"";position:absolute;left:0;top:calc(.62em);
+  width:clamp(9px,.85vw,15px);height:clamp(9px,.85vw,15px);background:var(--accent);
+  border-radius:2px}
+ul.pts li b{font-weight:700}
+ul.pts li:nth-last-child(n+5),ul.pts li:nth-last-child(n+5)~li{
+  padding-top:clamp(10px,1.5vh,20px);padding-bottom:clamp(10px,1.5vh,20px);
+  font-size:clamp(16px,2vw,34px)}
+ul.pts:has(li:nth-child(2):last-child) li,
+ul.pts:has(li:nth-child(3):last-child) li{
+  padding-top:clamp(20px,3.6vh,52px);padding-bottom:clamp(20px,3.6vh,52px);
+  font-size:clamp(19px,2.65vw,48px)}
+/* 목록(왼쪽) + 캡처(오른쪽) 2단 — 글만으로는 어느 탭인지 못 찾는 화면용 */
+.twocol{display:grid;grid-template-columns:1fr 1fr;gap:clamp(20px,2.6vw,46px);align-items:start}
+.twocol .pts{margin-top:0}
+.twocol .shotbox{margin-top:0;height:100%}
+.twocol .shotbox img{max-height:44vh}
+.note{margin:clamp(16px,2.4vh,32px) 0 0;font-size:clamp(14px,1.75vw,29px);
+  color:var(--muted);line-height:1.5}
+.note b{color:var(--accent-dim);font-weight:700}
+
+/* 단계 카드 — 테두리 없이 위쪽 굵은 선 */
+.steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,215px),1fr));
+  gap:clamp(16px,2.1vw,36px)}
+.step{border-top:5px solid var(--accent);padding:clamp(14px,2vh,28px) 0 0}
+.step .ic{font-size:clamp(28px,3.3vw,54px);line-height:1.1}
+.step .ic.num{background:var(--ink);color:var(--paper);width:clamp(32px,2.8vw,46px);
+  height:clamp(32px,2.8vw,46px);border-radius:5px;display:flex;align-items:center;
+  justify-content:center;font-weight:700;font-size:clamp(17px,1.7vw,27px);
+  font-variant-numeric:tabular-nums}
+.step > b{display:block;font-size:clamp(18px,2.35vw,39px);margin:clamp(9px,1.3vh,18px) 0 5px;
+  letter-spacing:-.025em;line-height:1.25}
+.step span{color:var(--muted);font-size:clamp(15px,1.9vw,31px);line-height:1.42}
+
+/* 화면 캡처 자리 — 브라우저 창 모양 */
+.shotbox{margin-top:clamp(8px,1.4vh,18px);border:1px solid var(--line);border-radius:10px;
+  background:var(--white);overflow:hidden;display:flex;flex-direction:column;
+  flex:1 1 auto;max-height:62vh}
+.shotbox .chrome{background:var(--ink);color:var(--dim);display:flex;align-items:center;
+  gap:9px;padding:clamp(6px,.9vh,11px) clamp(11px,1.1vw,18px);
+  font-family:ui-monospace,Consolas,"D2Coding",monospace;font-size:clamp(11px,1.15vw,18px)}
+.shotbox .chrome span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.shotbox .chrome i{width:clamp(7px,.62vw,11px);height:clamp(7px,.62vw,11px);
+  border-radius:50%;background:#464C78;display:block}
+.shotbox .chrome i:first-child{background:var(--spark)}
+.shotbox .body{flex:1;display:flex;align-items:center;justify-content:center;text-align:center;
+  padding:clamp(16px,3vh,34px);min-height:38vh;color:var(--muted);
+  font-size:clamp(13px,1.5vw,23px);background:repeating-linear-gradient(135deg,
+    #fff 0 11px,#FAFAFD 11px 22px)}
+.shotbox img{max-width:100%;max-height:52vh;display:block;border-radius:4px}
+
+figure{margin:0;display:flex;flex-direction:column;align-items:center;gap:clamp(8px,1.6vh,20px);width:100%}
+figure svg{width:100%;height:auto;max-height:58vh}
+figcaption{color:var(--muted);font-size:clamp(13px,1.55vw,25px);text-align:center;
+  max-width:46em;line-height:1.45}
+
+/* 표지 */
+.cover{background:var(--ink);color:var(--white);justify-content:flex-end;
+  padding-bottom:15vh}
+.cover .ses{display:flex;align-items:baseline;gap:clamp(10px,1vw,18px);margin:0 0 clamp(14px,2vh,26px)}
+.cover .ses .num{font-size:clamp(46px,8vw,132px);font-weight:700;line-height:.82;
+  color:var(--spark);letter-spacing:-.05em;font-variant-numeric:tabular-nums}
+.cover .ses .of{font-size:clamp(15px,1.7vw,26px);color:var(--dim)}
+.cover h1{font-size:clamp(30px,5.4vw,88px);line-height:1.14;margin:0 0 clamp(10px,1.6vh,22px);
+  letter-spacing:-.04em;font-weight:700}
+.cover p{font-size:clamp(17px,2.3vw,38px);color:var(--dim);margin:0;max-width:30em;line-height:1.4}
+.cover .course{position:absolute;left:5vw;top:4.4vh;font-size:clamp(12px,1.3vw,19px);
+  color:#6E72A8}
+.three{display:flex;gap:clamp(5px,.55vw,10px);margin:0 0 clamp(16px,2.6vh,34px)}
+.three span{width:clamp(34px,3.4vw,58px);height:clamp(7px,.85vh,13px);border-radius:2px;
+  background:#2E3356;display:block}
+.three span.done{background:#454B7C}
+.three span.now{background:var(--spark)}
+
+/* 타임라인 — 블록 길이를 막대 너비로 보여 준다 */
+.tl{display:flex;flex-direction:column;border-top:1px solid var(--line)}
+.tlrow{display:flex;align-items:center;gap:clamp(14px,1.6vw,30px);
+  border-bottom:1px solid var(--line);padding:clamp(12px,2.2vh,30px) 0}
+.tlrow .t{font-variant-numeric:tabular-nums;font-weight:700;color:var(--ink);
+  font-size:clamp(14px,1.75vw,30px);white-space:nowrap;
+  font-family:ui-monospace,Consolas,"D2Coding",monospace;letter-spacing:-.05em;
+  flex:0 0 auto;min-width:6.2em}
+.tlrow .d{font-size:clamp(16px,2.1vw,37px);flex:1 1 auto;min-width:0}
+.tlrow .track{flex:0 0 32%;height:clamp(9px,1.05vh,16px);background:#E2E2EE;
+  border-radius:3px;overflow:hidden}
+.tlrow .len{display:block;height:100%;background:var(--accent);border-radius:3px}
+.tlrow:last-child .len{background:var(--spark)}
+
+/* 한 문장 슬라이드 — 잉크 바탕 */
+.punch{background:var(--ink);color:var(--white)}
+.punch .mark{color:var(--dim)}
+.punch .mark .n{background:var(--spark);color:var(--ink)}
+.lead{font-size:clamp(16px,2vw,32px);font-weight:700;color:var(--accent);
+  margin:0 0 clamp(10px,1.5vh,20px);line-height:1.3;letter-spacing:-.02em}
+.punch .lead{color:var(--spark)}
+.big{font-size:clamp(33px,6.6vw,108px);font-weight:700;line-height:1.08;
+  margin:0 0 clamp(14px,2.2vh,30px);letter-spacing:-.045em}
+.punch .sub{color:var(--dim)}
+.punch .sub b{color:var(--white)}
+
+/* 하단 — 평소엔 진행선만, 마우스를 움직이면 조작부가 올라온다 */
+.rail{position:absolute;left:0;right:0;bottom:0;height:4px;background:#E2E2EE;z-index:5}
+.punch~.rail,.cover~.rail{background:#2E3356}
+.rail i{display:block;height:100%;width:0;background:var(--accent);transition:width .22s}
+.bar{position:absolute;left:0;right:0;bottom:0;display:flex;align-items:center;gap:13px;
+  padding:9px 16px 12px;background:rgba(255,255,255,.96);border-top:1px solid var(--line);
+  z-index:6;transform:translateY(105%);transition:transform .2s ease;
+  -webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+.deck.show .bar{transform:translateY(0)}
+.bar button{background:var(--accent);color:#fff;border:0;border-radius:7px;padding:8px 15px;
+  font-size:14.5px;cursor:pointer;font-family:inherit}
+.bar button:hover{background:var(--accent-dim)}
+.bar button:disabled{background:#B9BAD2;cursor:default}
+.bar .count{font-variant-numeric:tabular-nums;color:var(--muted);font-size:14.5px;
+  font-family:ui-monospace,Consolas,monospace}
+.bar .sp{flex:1}
+.bar a{color:var(--muted);text-decoration:none;font-size:14px;padding:5px 9px;border-radius:7px}
+.bar a:hover{background:var(--accent-soft);color:var(--accent-dim)}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.punch :focus-visible,.cover :focus-visible{outline-color:var(--spark)}
+
+@media (max-width:600px){
+  .twocol{grid-template-columns:1fr}
+  .slide{padding:9vh 6vw 7vh}
+  .bar a{display:none}
+  .tlrow .len{display:none}
+  .tlrow .t{min-width:4.6em}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+@media print{
+  body{overflow:visible} .deck{height:auto;position:static} .stage{position:static}
+  .slide{display:flex!important;position:static;page-break-after:always;min-height:95vh;
+    border-bottom:1px solid #ccc}
+  .bar,.rail{display:none}
+  .cover,.punch{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}
+
+/* 보드 화면 — 실제 2.8인치 화면 비율(3:4)의 검은 테두리 */
+.boards{display:flex;justify-content:center;gap:clamp(14px,2.2vw,40px);flex-wrap:wrap;width:100%}
+.boards figure{width:auto;flex:0 1 auto}
+.bframe{background:#0B0D1A;border-radius:clamp(10px,1.2vw,18px);padding:clamp(7px,.8vw,13px);
+  box-shadow:0 10px 30px rgba(23,26,46,.22)}
+.bframe img{display:block;height:clamp(180px,44vh,520px);width:auto;border-radius:4px;
+  image-rendering:pixelated}
+.boards.four .bframe img{height:clamp(150px,36vh,430px)}
+.keys{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr));
+  gap:clamp(10px,1.4vw,22px)}
+.key{display:flex;align-items:center;gap:clamp(10px,1.2vw,20px);border-bottom:1px solid var(--line);
+  padding:clamp(8px,1.4vh,18px) 0}
+.key kbd{font-family:ui-monospace,Consolas,monospace;background:var(--white);border:1px solid var(--line);
+  border-bottom-width:3px;border-radius:7px;padding:3px 10px;font-size:clamp(14px,1.6vw,26px);
+  white-space:nowrap;font-weight:700}
+.key span{font-size:clamp(15px,1.8vw,30px)}
+.twocol.pb{grid-template-columns:2.2fr 1fr;align-items:center}
+.tl.dense .tlrow{padding:clamp(6px,1.1vh,17px) 0}
+.tl.dense .tlrow .d{font-size:clamp(15px,1.9vw,33px)}
+.twocol.pb .bframe img{height:clamp(150px,38vh,440px)}
+@media (max-width:760px){.twocol.pb{grid-template-columns:1fr}}
+
+</style>
+</head>
+<body>
+<div class="deck" id="deck">
+  <div class="stage">
+<section class="slide cover"><div class="course">바이브코딩으로 만드는 교탁 도우미</div><div class="three"><span class="done"></span><span class="now"></span><span class=""></span></div><p class="ses"><span class="num">2</span><span class="of">차시 / 전체 3차시</span></p><h1>남은 시간을 보여 주는 타이머 신호등</h1><p>입력 → 판단 → 표시, 피지컬 컴퓨팅의 뼈대</p></section><section class="slide"><div class="mark"><span class="n">2</span><span>남은 시간을 보여 주는 타이머 신호등</span></div><h2>이번 차시 흐름 · 50분</h2><div class="tl"><div class="tlrow"><span class="t">00~05분</span><span class="d">지난 시간 확인과 오늘의 목표</span><span class="track"><i class="len" style="width:10.0%"></i></span></div><div class="tlrow"><span class="t">05~12분</span><span class="d">보드 시계와 앱 규칙</span><span class="track"><i class="len" style="width:14.0%"></i></span></div><div class="tlrow"><span class="t">12~30분</span><span class="d">① 기본 신호등 만들기</span><span class="track"><i class="len" style="width:36.0%"></i></span></div><div class="tlrow"><span class="t">30~40분</span><span class="d">② 시간 고르기 · ③ 알림 더하기</span><span class="track"><i class="len" style="width:20.0%"></i></span></div><div class="tlrow"><span class="t">40~46분</span><span class="d">우리 반 활동에 맞추기</span><span class="track"><i class="len" style="width:12.0%"></i></span></div><div class="tlrow"><span class="t">46~50분</span><span class="d">정리</span><span class="track"><i class="len" style="width:8.0%"></i></span></div></div><p class="note">시간은 안내일 뿐입니다. 업로드에서 막히는 분이 많으면 실습 시간을 늘립니다.</p></section><section class="slide"><div class="mark"><span class="n">2</span><span>남은 시간을 보여 주는 타이머 신호등</span></div><h2>오늘 만들 것</h2><div class="boards"><figure><div class="bframe"><img src="shots/board_timer_green.png" alt="활동 시간"></div><figcaption>활동 시간</figcaption></figure><figure><div class="bframe"><img src="shots/board_timer_yellow.png" alt="곧 끝나요"></div><figcaption>곧 끝나요</figcaption></figure><figure><div class="bframe"><img src="shots/board_timer_red.png" alt="시간 끝!"></div><figcaption>시간 끝!</figcaption></figure></div><p class="note">화면 전체가 신호등 색으로 바뀝니다. 모둠 활동·시험 시간에 교실 뒤에서도 잘 보입니다.</p></section><section class="slide"><div class="mark"><span class="n">2</span><span>남은 시간을 보여 주는 타이머 신호등</span></div><h2>입력에서 표시까지</h2><figure><svg viewBox="0 0 1000 250" role="img" aria-label="입력에서 표시까지"><defs><marker id="a" markerWidth="11" markerHeight="8" refX="10" refY="4" orient="auto"><path d="M0 0 L11 4 L0 8 z" fill="#C8430E"/></marker></defs><g text-anchor="middle"><rect x="10" y="50" width="220" height="132" rx="16" fill="#fff" stroke="#DCDCE8" stroke-width="2"/><text x="120" y="96" font-size="36">⏱️</text><text x="120" y="130" font-size="20" font-weight="700" fill="#171A2E">보드 시계</text><text x="120" y="156" font-size="15" fill="#62648A">켜진 뒤 흐른 시간</text><rect x="270" y="50" width="220" height="132" rx="16" fill="#fff" stroke="#DCDCE8" stroke-width="2"/><text x="380" y="96" font-size="36">🔢</text><text x="380" y="130" font-size="20" font-weight="700" fill="#171A2E">숫자로</text><text x="380" y="156" font-size="15" fill="#62648A">남은 시간 (1/1000초)</text><text x="380" y="178" font-size="14" font-family="ui-monospace,Consolas,monospace" fill="#171A2E">millis()</text><rect x="530" y="50" width="220" height="132" rx="16" fill="#FFF0E8" stroke="#C8430E" stroke-width="2"/><text x="640" y="96" font-size="36">⚖️</text><text x="640" y="130" font-size="20" font-weight="700" fill="#A8370B">비교</text><text x="640" y="156" font-size="15" fill="#62648A">전체의 몇 분의 몇?</text><rect x="770" y="50" width="220" height="132" rx="16" fill="#A8370B" stroke="#A8370B" stroke-width="2"/><text x="880" y="96" font-size="36">🚦</text><text x="880" y="130" font-size="20" font-weight="700" fill="#fff">표시</text><text x="880" y="156" font-size="15" fill="#FFE3D3">화면 색 + 알림음 + LED</text><g stroke="#C8430E" stroke-width="3" marker-end="url(#a)"><line x1="232" y1="116" x2="262" y2="116"/><line x1="492" y1="116" x2="522" y2="116"/><line x1="752" y1="116" x2="762" y2="116"/></g><text x="500" y="226" font-size="18" fill="#62648A">입력 → 판단 → 표시. <tspan font-weight="700" fill="#A8370B">피지컬 컴퓨팅은 늘 이 세 칸</tspan>입니다</text></g></svg><figcaption>오늘은 보드의 시계를 쓰지만, 온도·빛·거리 센서를 붙여도 같은 세 칸입니다. 입력 칸만 바뀝니다.</figcaption></figure></section><section class="slide punch"><div class="mark"><span class="n">2</span><span>남은 시간을 보여 주는 타이머 신호등</span></div><p class="lead">알아 둘 것</p><p class="big">delay()는 쓰지 않습니다</p><p class="sub">1초씩 <b>멈춰서 기다리면</b> 그동안 터치가 먹지 않습니다.<br>그래서 <b>millis()</b> — 켜진 뒤 흐른 시간 — 을 보며 판단합니다.</p></section><section class="slide"><div class="mark"><span class="n">2</span><span>남은 시간을 보여 주는 타이머 신호등</span></div><h2>앱 규칙 — 네 칸 채우기</h2><figure><svg viewBox="0 0 1000 250" role="img" aria-label="앱 규칙 네 가지 함수"><defs><marker id="a" markerWidth="11" markerHeight="8" refX="10" refY="4" orient="auto"><path d="M0 0 L11 4 L0 8 z" fill="#C8430E"/></marker></defs><g text-anchor="middle"><rect x="10" y="40" width="226" height="170" rx="14" fill="#fff" stroke="#C8430E" stroke-width="2"/><text x="123" y="78" font-size="20" font-family="ui-monospace,Consolas,monospace" font-weight="700" fill="#A8370B">start()</text><text x="123" y="110" font-size="16" font-weight="700" fill="#171A2E">들어올 때</text><text x="123" y="150" font-size="14.5" fill="#62648A">저장한 시간 읽기</text><text x="123" y="174" font-size="14.5" fill="#62648A">화면 그리기</text><rect x="256" y="40" width="226" height="170" rx="14" fill="#fff" stroke="#C8430E" stroke-width="2"/><text x="369" y="78" font-size="20" font-family="ui-monospace,Consolas,monospace" font-weight="700" fill="#A8370B">update()</text><text x="369" y="110" font-size="16" font-weight="700" fill="#171A2E">계속 반복</text><text x="369" y="150" font-size="14.5" fill="#62648A">남은 시간 재기</text><text x="369" y="174" font-size="14.5" fill="#62648A">색 바꾸기</text><rect x="502" y="40" width="226" height="170" rx="14" fill="#fff" stroke="#C8430E" stroke-width="2"/><text x="615" y="78" font-size="20" font-family="ui-monospace,Consolas,monospace" font-weight="700" fill="#A8370B">touch()</text><text x="615" y="110" font-size="16" font-weight="700" fill="#171A2E">눌렀을 때</text><text x="615" y="150" font-size="14.5" fill="#62648A">시작·멈춤</text><text x="615" y="174" font-size="14.5" fill="#62648A">시간 고르기</text><rect x="748" y="40" width="226" height="170" rx="14" fill="#fff" stroke="#C8430E" stroke-width="2"/><text x="861" y="78" font-size="20" font-family="ui-monospace,Consolas,monospace" font-weight="700" fill="#A8370B">stop()</text><text x="861" y="110" font-size="16" font-weight="700" fill="#171A2E">나갈 때</text><text x="861" y="150" font-size="14.5" fill="#62648A">LED 끄기</text><text x="861" y="174" font-size="14.5" fill="#62648A">정리</text><text x="500" y="238" font-size="17" fill="#62648A">이 네 칸만 채우면 첫 화면의 회색 칸이 켜집니다 — 타이머 신호등의 예</text></g></svg><figcaption>규칙은 helper.h 맨 위에 적혀 있습니다. 그래서 AI에게 helper.h를 함께 보여 줍니다.</figcaption></figure></section><section class="slide"><div class="mark"><span class="n">2</span><span>남은 시간을 보여 주는 타이머 신호등</span></div><h2>새 앱을 만드는 순서</h2><div class="steps"><div class="step"><div class="ic num">1</div><b>새 대화</b><span>제미나이에서 새 대화</span></div><div class="step"><div class="ic num">2</div><b>프롬프트</b><span>워크벤치 2차시 ①을 붙여 넣고</span></div><div class="step"><div class="ic num">3</div><b>두 파일 이어 붙이기</b><span>그 아래에 <b>helper.h</b>와 <b>빈 app_timer.h</b> — 한 번에 보내기</span></div><div class="step"><div class="ic num">4</div><b>덮어쓰기</b><span>받은 코드를 app_timer.h 탭에<br>Ctrl+A → Ctrl+V → Ctrl+S</span></div></div><p class="note">조수석은 워크벤치에서 붙일 순서를 읽어 주고, 운전석은 붙여 넣습니다.</p></section><section class="slide"><div class="mark"><span class="n">2</span><span>남은 시간을 보여 주는 타이머 신호등</span></div><h2>탭에 통째로 덮어쓰기</h2><p class="sub" style="margin-bottom:clamp(10px,1.8vh,24px)"><b>app_timer.h</b> 탭을 누르고, 전체 선택 후 붙여넣기. 다른 탭은 건드리지 않습니다.</p><div class="shotbox"><div class="chrome"><i></i><i></i><i></i><span>아두이노 IDE — app_timer.h</span></div><div class="body"><img src="shots/ide_overwrite_timer.png" alt="" onerror="this.style.display='none';this.parentNode.insertAdjacentText('beforeend','여기에 app_timer.h 탭에 붙여넣은 화면 캡처 — shots/ide_overwrite_timer.png')"></div></div></section><section class="slide punch"><div class="mark"><span class="n">2</span><span>남은 시간을 보여 주는 타이머 신호등</span></div><p class="lead">직접 18분</p><p class="big">① 기본 신호등</p><p class="sub">첫 화면의 <b>회색 칸이 초록으로</b> 켜지면 성공. <b>9분쯤 자리를 바꿉니다.</b><br>오류가 나면 맨 위 세 줄을 복사해 AI에게 보여 줍니다.</p></section><section class="slide"><div class="mark"><span class="n">2</span><span>남은 시간을 보여 주는 타이머 신호등</span></div><h2>같은 대화에 이어서 말하기</h2><div class="steps"><div class="step"><div class="ic num">1</div><b>② 시간 고르기</b><span>1·3·5·10·15분 버튼 + [-1분] [+1분]</span></div><div class="step"><div class="ic num">2</div><b>③ 알림</b><span>노랑이 될 때 짧게, 끝나면 알림음 + LED 깜빡</span></div><div class="step"><div class="ic num">3</div><b>또 업로드</b><span>바꾼 파일 전체를 다시 덮어쓰기</span></div></div><p class="note">대화를 새로 열면 AI가 앞에서 만든 것을 모릅니다. <b>같은 대화</b>에서 이어 갑니다. ②가 끝나면 자리를 바꿉니다.</p></section><section class="slide"><div class="mark"><span class="n">2</span><span>남은 시간을 보여 주는 타이머 신호등</span></div><h2>알림이 수업을 방해하지 않게</h2><ul class="pts"><li>끝날 때 <b>한 번만</b> 울린다</li><li><b>[알림음 켬/끔]</b> 버튼 — 시험 시간엔 끔</li><li>빨강은 깜빡이되 <b>0.5초</b>마다 천천히</li><li>보드 <b>BOOT 버튼</b>으로도 시작·멈춤</li></ul><p class="note">이 보드의 LED는 켜기·끄기만 됩니다. 0~255 중 <b>25보다 큰 값</b>이면 켜집니다.</p></section><section class="slide"><div class="mark"><span class="n">2</span><span>남은 시간을 보여 주는 타이머 신호등</span></div><h2>우리 반 활동에 맞추기</h2><div class="boards"><figure><div class="bframe"><img src="shots/board_timer_ready.png" alt="시간 고르기"></div><figcaption>시간 고르기</figcaption></figure><figure><div class="bframe"><img src="shots/board_timer_red.png" alt="끝난 뒤 — 지난 시간"></div><figcaption>끝난 뒤 — 지난 시간</figcaption></figure></div><p class="note">시간이 지나도 빨간 화면에 몇 초 넘었는지 보여 줍니다. 모둠 발표 시간 지키기에 좋습니다.</p></section><section class="slide"><div class="mark"><span class="n">2</span><span>남은 시간을 보여 주는 타이머 신호등</span></div><h2>우리 반에 맞추기</h2><ul class="pts"><li>시간 버튼을 우리 반 활동에 맞게 — "<b>2·4·7분</b>으로 바꿔 줘"</li><li>노랑 시점을 "<b>1분 남았을 때</b>"로</li><li>문구를 우리 반 말투로 — "정리 시작!"</li><li>큰 색 화면을 눌러도 <b>시작·멈춤</b> — 손이 바쁠 때</li></ul></section><section class="slide punch"><div class="mark"><span class="n">2</span><span>남은 시간을 보여 주는 타이머 신호등</span></div><p class="lead">다음 시간</p><p class="big">보드가 PPT를 넘긴다</p><p class="sub">보드가 노트북의 <b>블루투스 키보드</b>가 됩니다.<br>수업에 쓰는 PPT 파일을 <b>두 분 모두</b> 하나씩 가져오세요.</p></section>
+  </div>
+  <div class="rail"><i id="fill"></i></div>
+  <div class="bar">
+    <button id="prev">← 이전</button>
+    <button id="next">다음 →</button>
+    <span class="count"><b id="cur">1</b> / 14</span>
+    <span class="sp"></span>
+    <a href="index.html">🏠 홈</a>
+    <a href="workbench.html#l2">🛠️ 워크벤치</a>
+    <a href="slides-1.html">1차시</a><a href="slides-3.html">3차시</a>
+  </div>
+</div>
+<script>
+var slides = document.querySelectorAll('.slide');
+var deck = document.getElementById('deck');
+var i = 0;
+function show(n){
+  i = Math.max(0, Math.min(slides.length - 1, n));
+  slides.forEach(function(s, k){ s.classList.toggle('on', k === i); });
+  document.getElementById('cur').textContent = (i + 1);
+  document.getElementById('fill').style.width = ((i + 1) / slides.length * 100) + '%';
+  document.getElementById('prev').disabled = (i === 0);
+  document.getElementById('next').disabled = (i === slides.length - 1);
+  try {
+    if (location.hash !== '#' + (i + 1)) history.replaceState(null, '', '#' + (i + 1));
+  } catch (e) { /* 미리보기 창이나 일부 환경에서는 주소를 바꿀 수 없음 — 넘어감 */ }
+  slides[i].scrollTop = 0;
+}
+document.addEventListener('keydown', function(e){
+  if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') { e.preventDefault(); show(i + 1); }
+  if (e.key === 'ArrowLeft'  || e.key === 'PageUp')  { e.preventDefault(); show(i - 1); }
+  if (e.key === 'Home') show(0);
+  if (e.key === 'End')  show(slides.length - 1);
+});
+document.getElementById('prev').addEventListener('click', function(){ show(i - 1); });
+document.getElementById('next').addEventListener('click', function(){ show(i + 1); });
+
+/* 발표 중에는 조작부를 감춘다. 마우스를 움직이면 2.5초 동안 나타난다. */
+var hideT = null;
+function peek(){
+  deck.classList.add('show');
+  clearTimeout(hideT);
+  hideT = setTimeout(function(){ deck.classList.remove('show'); }, 2500);
+}
+['mousemove','touchstart'].forEach(function(ev){
+  document.addEventListener(ev, peek, {passive:true});
+});
+document.querySelector('.bar').addEventListener('mouseenter', function(){
+  deck.classList.add('show'); clearTimeout(hideT);
+});
+document.addEventListener('focusin', function(e){
+  if (e.target.closest && e.target.closest('.bar')) { deck.classList.add('show'); clearTimeout(hideT); }
+});
+
+var t0 = null;
+document.querySelector('.stage').addEventListener('touchstart', function(e){ t0 = e.changedTouches[0].clientX; }, {passive:true});
+document.querySelector('.stage').addEventListener('touchend', function(e){
+  if (t0 === null) return;
+  var d = e.changedTouches[0].clientX - t0;
+  if (Math.abs(d) > 60) show(d < 0 ? i + 1 : i - 1);
+  t0 = null;
+}, {passive:true});
+function fromHash(){
+  var n = 0;
+  try { n = (parseInt((location.hash || '#1').slice(1), 10) - 1) || 0; } catch (e) { n = 0; }
+  return n;
+}
+addEventListener('hashchange', function(){
+  var n = fromHash();
+  if (n !== i) show(n);
+});
+show(fromHash());
+peek();
+</script>
+</body>
+</html>

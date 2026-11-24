@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#171A2E">
+<title>3차시 · 보드를 수업용 프레젠터로</title>
+<style>
+:root{
+  --ink:#171A2E; --ink-2:#232846; --paper:#F3F3F8; --white:#fff;
+  --accent:#C8430E; --accent-dim:#A8370B; --accent-soft:#FFF0E8;
+  --spark:#FFD400; --line:#DCDCE8; --muted:#62648A; --dim:#A8ABD0;
+}
+*{box-sizing:border-box}
+/* 한글이 단어 중간에서 끊기지 않게 — '메뉴에서'의 '서'만 내려가는 일을 막는다 */
+h2,.sub,.note,.big,.lead,figcaption,ul.pts li,.step b,.step span,.tlrow .d,
+.cover h1,.cover p,.shotbox .body{word-break:keep-all;overflow-wrap:break-word}
+html,body{height:100%}
+body{margin:0;background:var(--paper);color:var(--ink);overflow:hidden;
+  font-family:-apple-system,"Malgun Gothic","Apple SD Gothic Neo",sans-serif}
+.deck{height:100vh;position:relative}
+.stage{position:absolute;inset:0;overflow:hidden}
+.slide{position:absolute;inset:0;display:none;flex-direction:column;justify-content:center;
+  padding:11vh 5vw 8vh;overflow:auto}
+.slide.on{display:flex}
+
+/* 차시 표지 — 슬라이드 모서리에 고정, 본문 흐름 밖 */
+.mark{position:absolute;left:5vw;top:4.4vh;display:flex;align-items:center;
+  gap:clamp(9px,.9vw,15px);font-size:clamp(13px,1.35vw,21px);color:var(--muted)}
+.mark .n{background:var(--ink);color:var(--paper);font-weight:700;
+  width:clamp(26px,2.5vw,40px);height:clamp(26px,2.5vw,40px);border-radius:4px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:clamp(14px,1.45vw,23px);font-variant-numeric:tabular-nums}
+
+h2{font-size:clamp(28px,4.4vw,72px);line-height:1.18;margin:0 0 clamp(16px,2.6vh,38px);
+  letter-spacing:-.035em;font-weight:700}
+.sub{font-size:clamp(17px,2.2vw,36px);line-height:1.55;color:var(--muted);margin:0}
+.sub b{color:var(--ink);font-weight:700}
+
+/* 목록 — 상자가 아니라 가로줄로 나뉜 행 */
+ul.pts{list-style:none;margin:0;padding:0;border-top:1px solid var(--line)}
+ul.pts li{border-bottom:1px solid var(--line);padding:clamp(13px,2.1vh,27px) 0
+  clamp(13px,2.1vh,27px) clamp(26px,2.6vw,46px);position:relative;
+  font-size:clamp(17px,2.3vw,41px);line-height:1.38}
+ul.pts li::before{content:"";position:absolute;left:0;top:calc(.62em);
+  width:clamp(9px,.85vw,15px);height:clamp(9px,.85vw,15px);background:var(--accent);
+  border-radius:2px}
+ul.pts li b{font-weight:700}
+ul.pts li:nth-last-child(n+5),ul.pts li:nth-last-child(n+5)~li{
+  padding-top:clamp(10px,1.5vh,20px);padding-bottom:clamp(10px,1.5vh,20px);
+  font-size:clamp(16px,2vw,34px)}
+ul.pts:has(li:nth-child(2):last-child) li,
+ul.pts:has(li:nth-child(3):last-child) li{
+  padding-top:clamp(20px,3.6vh,52px);padding-bottom:clamp(20px,3.6vh,52px);
+  font-size:clamp(19px,2.65vw,48px)}
+/* 목록(왼쪽) + 캡처(오른쪽) 2단 — 글만으로는 어느 탭인지 못 찾는 화면용 */
+.twocol{display:grid;grid-template-columns:1fr 1fr;gap:clamp(20px,2.6vw,46px);align-items:start}
+.twocol .pts{margin-top:0}
+.twocol .shotbox{margin-top:0;height:100%}
+.twocol .shotbox img{max-height:44vh}
+.note{margin:clamp(16px,2.4vh,32px) 0 0;font-size:clamp(14px,1.75vw,29px);
+  color:var(--muted);line-height:1.5}
+.note b{color:var(--accent-dim);font-weight:700}
+
+/* 단계 카드 — 테두리 없이 위쪽 굵은 선 */
+.steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,215px),1fr));
+  gap:clamp(16px,2.1vw,36px)}
+.step{border-top:5px solid var(--accent);padding:clamp(14px,2vh,28px) 0 0}
+.step .ic{font-size:clamp(28px,3.3vw,54px);line-height:1.1}
+.step .ic.num{background:var(--ink);color:var(--paper);width:clamp(32px,2.8vw,46px);
+  height:clamp(32px,2.8vw,46px);border-radius:5px;display:flex;align-items:center;
+  justify-content:center;font-weight:700;font-size:clamp(17px,1.7vw,27px);
+  font-variant-numeric:tabular-nums}
+.step > b{display:block;font-size:clamp(18px,2.35vw,39px);margin:clamp(9px,1.3vh,18px) 0 5px;
+  letter-spacing:-.025em;line-height:1.25}
+.step span{color:var(--muted);font-size:clamp(15px,1.9vw,31px);line-height:1.42}
+
+/* 화면 캡처 자리 — 브라우저 창 모양 */
+.shotbox{margin-top:clamp(8px,1.4vh,18px);border:1px solid var(--line);border-radius:10px;
+  background:var(--white);overflow:hidden;display:flex;flex-direction:column;
+  flex:1 1 auto;max-height:62vh}
+.shotbox .chrome{background:var(--ink);color:var(--dim);display:flex;align-items:center;
+  gap:9px;padding:clamp(6px,.9vh,11px) clamp(11px,1.1vw,18px);
+  font-family:ui-monospace,Consolas,"D2Coding",monospace;font-size:clamp(11px,1.15vw,18px)}
+.shotbox .chrome span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.shotbox .chrome i{width:clamp(7px,.62vw,11px);height:clamp(7px,.62vw,11px);
+  border-radius:50%;background:#464C78;display:block}
+.shotbox .chrome i:first-child{background:var(--spark)}
+.shotbox .body{flex:1;display:flex;align-items:center;justify-content:center;text-align:center;
+  padding:clamp(16px,3vh,34px);min-height:38vh;color:var(--muted);
+  font-size:clamp(13px,1.5vw,23px);background:repeating-linear-gradient(135deg,
+    #fff 0 11px,#FAFAFD 11px 22px)}
+.shotbox img{max-width:100%;max-height:52vh;display:block;border-radius:4px}
+
+figure{margin:0;display:flex;flex-direction:column;align-items:center;gap:clamp(8px,1.6vh,20px);width:100%}
+figure svg{width:100%;height:auto;max-height:58vh}
+figcaption{color:var(--muted);font-size:clamp(13px,1.55vw,25px);text-align:center;
+  max-width:46em;line-height:1.45}
+
+/* 표지 */
+.cover{background:var(--ink);color:var(--white);justify-content:flex-end;
+  padding-bottom:15vh}
+.cover .ses{display:flex;align-items:baseline;gap:clamp(10px,1vw,18px);margin:0 0 clamp(14px,2vh,26px)}
+.cover .ses .num{font-size:clamp(46px,8vw,132px);font-weight:700;line-height:.82;
+  color:var(--spark);letter-spacing:-.05em;font-variant-numeric:tabular-nums}
+.cover .ses .of{font-size:clamp(15px,1.7vw,26px);color:var(--dim)}
+.cover h1{font-size:clamp(30px,5.4vw,88px);line-height:1.14;margin:0 0 clamp(10px,1.6vh,22px);
+  letter-spacing:-.04em;font-weight:700}
+.cover p{font-size:clamp(17px,2.3vw,38px);color:var(--dim);margin:0;max-width:30em;line-height:1.4}
+.cover .course{position:absolute;left:5vw;top:4.4vh;font-size:clamp(12px,1.3vw,19px);
+  color:#6E72A8}
+.three{display:flex;gap:clamp(5px,.55vw,10px);margin:0 0 clamp(16px,2.6vh,34px)}
+.three span{width:clamp(34px,3.4vw,58px);height:clamp(7px,.85vh,13px);border-radius:2px;
+  background:#2E3356;display:block}
+.three span.done{background:#454B7C}
+.three span.now{background:var(--spark)}
+
+/* 타임라인 — 블록 길이를 막대 너비로 보여 준다 */
+.tl{display:flex;flex-direction:column;border-top:1px solid var(--line)}
+.tlrow{display:flex;align-items:center;gap:clamp(14px,1.6vw,30px);
+  border-bottom:1px solid var(--line);padding:clamp(12px,2.2vh,30px) 0}
+.tlrow .t{font-variant-numeric:tabular-nums;font-weight:700;color:var(--ink);
+  font-size:clamp(14px,1.75vw,30px);white-space:nowrap;
+  font-family:ui-monospace,Consolas,"D2Coding",monospace;letter-spacing:-.05em;
+  flex:0 0 auto;min-width:6.2em}
+.tlrow .d{font-size:clamp(16px,2.1vw,37px);flex:1 1 auto;min-width:0}
+.tlrow .track{flex:0 0 32%;height:clamp(9px,1.05vh,16px);background:#E2E2EE;
+  border-radius:3px;overflow:hidden}
+.tlrow .len{display:block;height:100%;background:var(--accent);border-radius:3px}
+.tlrow:last-child .len{background:var(--spark)}
+
+/* 한 문장 슬라이드 — 잉크 바탕 */
+.punch{background:var(--ink);color:var(--white)}
+.punch .mark{color:var(--dim)}
+.punch .mark .n{background:var(--spark);color:var(--ink)}
+.lead{font-size:clamp(16px,2vw,32px);font-weight:700;color:var(--accent);
+  margin:0 0 clamp(10px,1.5vh,20px);line-height:1.3;letter-spacing:-.02em}
+.punch .lead{color:var(--spark)}
+.big{font-size:clamp(33px,6.6vw,108px);font-weight:700;line-height:1.08;
+  margin:0 0 clamp(14px,2.2vh,30px);letter-spacing:-.045em}
+.punch .sub{color:var(--dim)}
+.punch .sub b{color:var(--white)}
+
+/* 하단 — 평소엔 진행선만, 마우스를 움직이면 조작부가 올라온다 */
+.rail{position:absolute;left:0;right:0;bottom:0;height:4px;background:#E2E2EE;z-index:5}
+.punch~.rail,.cover~.rail{background:#2E3356}
+.rail i{display:block;height:100%;width:0;background:var(--accent);transition:width .22s}
+.bar{position:absolute;left:0;right:0;bottom:0;display:flex;align-items:center;gap:13px;
+  padding:9px 16px 12px;background:rgba(255,255,255,.96);border-top:1px solid var(--line);
+  z-index:6;transform:translateY(105%);transition:transform .2s ease;
+  -webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+.deck.show .bar{transform:translateY(0)}
+.bar button{background:var(--accent);color:#fff;border:0;border-radius:7px;padding:8px 15px;
+  font-size:14.5px;cursor:pointer;font-family:inherit}
+.bar button:hover{background:var(--accent-dim)}
+.bar button:disabled{background:#B9BAD2;cursor:default}
+.bar .count{font-variant-numeric:tabular-nums;color:var(--muted);font-size:14.5px;
+  font-family:ui-monospace,Consolas,monospace}
+.bar .sp{flex:1}
+.bar a{color:var(--muted);text-decoration:none;font-size:14px;padding:5px 9px;border-radius:7px}
+.bar a:hover{background:var(--accent-soft);color:var(--accent-dim)}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.punch :focus-visible,.cover :focus-visible{outline-color:var(--spark)}
+
+@media (max-width:600px){
+  .twocol{grid-template-columns:1fr}
+  .slide{padding:9vh 6vw 7vh}
+  .bar a{display:none}
+  .tlrow .len{display:none}
+  .tlrow .t{min-width:4.6em}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+@media print{
+  body{overflow:visible} .deck{height:auto;position:static} .stage{position:static}
+  .slide{display:flex!important;position:static;page-break-after:always;min-height:95vh;
+    border-bottom:1px solid #ccc}
+  .bar,.rail{display:none}
+  .cover,.punch{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}
+
+/* 보드 화면 — 실제 2.8인치 화면 비율(3:4)의 검은 테두리 */
+.boards{display:flex;justify-content:center;gap:clamp(14px,2.2vw,40px);flex-wrap:wrap;width:100%}
+.boards figure{width:auto;flex:0 1 auto}
+.bframe{background:#0B0D1A;border-radius:clamp(10px,1.2vw,18px);padding:clamp(7px,.8vw,13px);
+  box-shadow:0 10px 30px rgba(23,26,46,.22)}
+.bframe img{display:block;height:clamp(180px,44vh,520px);width:auto;border-radius:4px;
+  image-rendering:pixelated}
+.boards.four .bframe img{height:clamp(150px,36vh,430px)}
+.keys{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr));
+  gap:clamp(10px,1.4vw,22px)}
+.key{display:flex;align-items:center;gap:clamp(10px,1.2vw,20px);border-bottom:1px solid var(--line);
+  padding:clamp(8px,1.4vh,18px) 0}
+.key kbd{font-family:ui-monospace,Consolas,monospace;background:var(--white);border:1px solid var(--line);
+  border-bottom-width:3px;border-radius:7px;padding:3px 10px;font-size:clamp(14px,1.6vw,26px);
+  white-space:nowrap;font-weight:700}
+.key span{font-size:clamp(15px,1.8vw,30px)}
+.twocol.pb{grid-template-columns:2.2fr 1fr;align-items:center}
+.tl.dense .tlrow{padding:clamp(6px,1.1vh,17px) 0}
+.tl.dense .tlrow .d{font-size:clamp(15px,1.9vw,33px)}
+.twocol.pb .bframe img{height:clamp(150px,38vh,440px)}
+@media (max-width:760px){.twocol.pb{grid-template-columns:1fr}}
+
+</style>
+</head>
+<body>
+<div class="deck" id="deck">
+  <div class="stage">
+<section class="slide cover"><div class="course">바이브코딩으로 만드는 교탁 도우미</div><div class="three"><span class="done"></span><span class="done"></span><span class="now"></span></div><p class="ses"><span class="num">3</span><span class="of">차시 / 전체 3차시</span></p><h1>보드를 수업용 프레젠터로</h1><p>보드가 블루투스 키보드가 되면 노트북을 움직일 수 있다</p></section><section class="slide"><div class="mark"><span class="n">3</span><span>보드를 수업용 프레젠터로</span></div><h2>이번 차시 흐름 · 50분</h2><div class="tl dense"><div class="tlrow"><span class="t">00~05분</span><span class="d">탭덱 소개와 오늘의 목표</span><span class="track"><i class="len" style="width:10.0%"></i></span></div><div class="tlrow"><span class="t">05~10분</span><span class="d">노트북과 블루투스 연결</span><span class="track"><i class="len" style="width:10.0%"></i></span></div><div class="tlrow"><span class="t">10~25분</span><span class="d">① 넘기기</span><span class="track"><i class="len" style="width:30.0%"></i></span></div><div class="tlrow"><span class="t">25~35분</span><span class="d">② 포인터</span><span class="track"><i class="len" style="width:20.0%"></i></span></div><div class="tlrow"><span class="t">35~42분</span><span class="d">③ 타이머</span><span class="track"><i class="len" style="width:14.0%"></i></span></div><div class="tlrow"><span class="t">42~46분</span><span class="d">내 PPT로 써 보기</span><span class="track"><i class="len" style="width:8.0%"></i></span></div><div class="tlrow"><span class="t">46~50분</span><span class="d">가져갈 것 · 마무리</span><span class="track"><i class="len" style="width:8.0%"></i></span></div></div><p class="note">시간은 안내일 뿐입니다. 업로드에서 막히는 분이 많으면 실습 시간을 늘립니다.</p></section><section class="slide"><div class="mark"><span class="n">3</span><span>보드를 수업용 프레젠터로</span></div><h2>다른 선생님은 이렇게 씁니다</h2><p class="sub" style="margin-bottom:clamp(10px,1.8vh,24px)"><b>탭덱</b> — 보드의 버튼을 누르면 PC의 프로그램·사이트가 열립니다. 오늘 우리는 같은 원리로 <b>프레젠터</b>를 만듭니다.</p><div class="shotbox"><div class="chrome"><i></i><i></i><i></i><span>penedu.web.app/board/tapdeck</span></div><div class="body"><img src="shots/tapdeck.jpg" alt="" onerror="this.style.display='none';this.parentNode.insertAdjacentText('beforeend','여기에 탭덱을 교실에서 쓰는 모습 캡처 — shots/tapdeck.jpg')"></div></div></section><section class="slide"><div class="mark"><span class="n">3</span><span>보드를 수업용 프레젠터로</span></div><h2>보드가 키보드가 되는 원리</h2><figure><svg viewBox="0 0 1000 250" role="img" aria-label="보드가 블루투스 키보드가 되는 원리"><defs><marker id="a" markerWidth="11" markerHeight="8" refX="10" refY="4" orient="auto"><path d="M0 0 L11 4 L0 8 z" fill="#C8430E"/></marker></defs><g text-anchor="middle"><rect x="10" y="50" width="220" height="132" rx="16" fill="#fff" stroke="#DCDCE8" stroke-width="2"/><text x="120" y="96" font-size="36">👆</text><text x="120" y="130" font-size="20" font-weight="700" fill="#171A2E">보드 터치</text><text x="120" y="156" font-size="15" fill="#62648A">[다음] 버튼</text><rect x="270" y="50" width="220" height="132" rx="16" fill="#fff" stroke="#DCDCE8" stroke-width="2"/><text x="380" y="96" font-size="36">📶</text><text x="380" y="130" font-size="20" font-weight="700" fill="#171A2E">블루투스</text><text x="380" y="156" font-size="15" fill="#62648A">키 신호를 보낸다</text><text x="380" y="178" font-size="14" font-family="ui-monospace,Consolas,monospace" fill="#171A2E">Hid::key(→)</text><rect x="530" y="50" width="220" height="132" rx="16" fill="#FFF0E8" stroke="#C8430E" stroke-width="2"/><text x="640" y="96" font-size="36">⌨️</text><text x="640" y="130" font-size="20" font-weight="700" fill="#A8370B">노트북은 착각</text><text x="640" y="156" font-size="15" fill="#62648A">무선 키보드가 왔네?</text><rect x="770" y="50" width="220" height="132" rx="16" fill="#A8370B" stroke="#A8370B" stroke-width="2"/><text x="880" y="96" font-size="36">🖥️</text><text x="880" y="130" font-size="20" font-weight="700" fill="#fff">PPT 다음 장</text><text x="880" y="156" font-size="15" fill="#FFE3D3">설치 프로그램 없음</text><g stroke="#C8430E" stroke-width="3" marker-end="url(#a)"><line x1="232" y1="116" x2="262" y2="116"/><line x1="492" y1="116" x2="522" y2="116"/><line x1="752" y1="116" x2="762" y2="116"/></g><text x="500" y="226" font-size="18" fill="#62648A">노트북에서 보면 <tspan font-weight="700" fill="#A8370B">그냥 무선 키보드·마우스</tspan>입니다. 설치할 프로그램이 없습니다</text></g></svg><figcaption>노트북에 프로그램을 설치하지 않습니다. 선 없이 교실 어디서나 넘길 수 있습니다.</figcaption></figure></section><section class="slide punch"><div class="mark"><span class="n">3</span><span>보드를 수업용 프레젠터로</span></div><p class="lead">오늘 새로 하는 한 가지</p><p class="big">블루투스 연결</p><p class="sub">노트북 설정에서 <b>내 보드 이름</b>을 한 번 고르면 끝.<br>다음부터는 켜기만 하면 저절로 이어집니다.</p></section><section class="slide"><div class="mark"><span class="n">3</span><span>보드를 수업용 프레젠터로</span></div><h2>처음 한 번 연결하기</h2><div class="twocol"><ul class="pts"><li>노트북 <b>설정 → 블루투스 및 장치</b></li><li><b>장치 추가 → Bluetooth</b></li><li>목록에서 <b>내 보드 이름</b>(config.h 의 BT_NAME)을 고른다</li><li>보드 제목줄의 점이 <b>초록</b>이면 연결 완료</li></ul><div class="shotbox"><div class="chrome"><i></i><i></i><i></i><span>Windows 설정 — 블루투스 및 장치</span></div><div class="body"><img src="shots/win_bluetooth.png" alt="" onerror="this.style.display='none';this.parentNode.insertAdjacentText('beforeend','여기에 윈도우 장치 추가 화면 캡처 — shots/win_bluetooth.png')"></div></div></div><p class="note">다른 조 보드를 고르지 않도록, 1차시에 config.h에서 정한 이름을 확인하세요. 처음에는 <b>우리 조 노트북</b>에 연결합니다.</p></section><section class="slide"><div class="mark"><span class="n">3</span><span>보드를 수업용 프레젠터로</span></div><h2>연결 전과 후</h2><div class="boards"><figure><div class="bframe"><img src="shots/board_pres_pair.png" alt="연결 전 — 연결 방법이 보여요"></div><figcaption>연결 전 — 연결 방법이 보여요</figcaption></figure><figure><div class="bframe"><img src="shots/board_pres_slide.png" alt="연결 후 — 버튼이 나타나요"></div><figcaption>연결 후 — 버튼이 나타나요</figcaption></figure></div><p class="note">보드는 켜지는 순간부터 노트북이 찾을 수 있게 기다립니다. 첫 화면에 있어도 연결됩니다.</p></section><section class="slide"><div class="mark"><span class="n">3</span><span>보드를 수업용 프레젠터로</span></div><h2>오늘 만들 네 장</h2><div class="boards four"><figure><div class="bframe"><img src="shots/board_pres_slide.png" alt="① 넘기기"></div><figcaption>① 넘기기</figcaption></figure><figure><div class="bframe"><img src="shots/board_pres_pointer.png" alt="② 포인터"></div><figcaption>② 포인터</figcaption></figure><figure><div class="bframe"><img src="shots/board_pres_screen.png" alt="화면·소리"></div><figcaption>화면·소리</figcaption></figure><figure><div class="bframe"><img src="shots/board_pres_timer.png" alt="③ 타이머"></div><figcaption>③ 타이머</figcaption></figure></div><p class="note">화면 아래 탭으로 장을 넘깁니다. ①에서 시작해 한 장씩 늘립니다.</p></section><section class="slide"><div class="mark"><span class="n">3</span><span>보드를 수업용 프레젠터로</span></div><h2>파워포인트 단축키</h2><div class="keys"><div class="key"><kbd>→</kbd><span>다음 장</span></div><div class="key"><kbd>←</kbd><span>이전 장</span></div><div class="key"><kbd>F5</kbd><span>처음부터</span></div><div class="key"><kbd>Shift+F5</kbd><span>이 장부터</span></div><div class="key"><kbd>Esc</kbd><span>끝내기</span></div><div class="key"><kbd>Ctrl+L</kbd><span>레이저 포인터</span></div><div class="key"><kbd>Ctrl+P</kbd><span>펜</span></div><div class="key"><kbd>.</kbd><span>검은 화면</span></div></div><p class="note">보드는 이 키를 대신 눌러 줄 뿐입니다. 구글 슬라이드는 단축키가 조금 다릅니다.</p></section><section class="slide punch"><div class="mark"><span class="n">3</span><span>보드를 수업용 프레젠터로</span></div><p class="lead">직접 15분</p><p class="big">① 넘기기</p><p class="sub">워크벤치 3차시 ① 프롬프트.<br>보드 뒷면 <b>BOOT 버튼도 "다음 장"</b>이 되게 해 봅니다.</p></section><section class="slide"><div class="mark"><span class="n">3</span><span>보드를 수업용 프레젠터로</span></div><h2>같은 대화에 이어서</h2><div class="steps"><div class="step"><div class="ic num">1</div><b>② 포인터</b><span>레이저·펜 버튼 + 문지르면 마우스가 움직이는 터치패드</span></div><div class="step"><div class="ic num">2</div><b>③ 타이머</b><span>1·3·5·10분, 끝나면 빨갛게 깜빡임</span></div><div class="step"><div class="ic num">3</div><b>업로드</b><span>장이 늘어날 때마다</span></div></div><p class="note">시간이 모자라면 ③은 워크벤치의 완성 코드로 갈아 끼웁니다.</p></section><section class="slide"><div class="mark"><span class="n">3</span><span>보드를 수업용 프레젠터로</span></div><h2>키가 안 먹을 때</h2><ul class="pts"><li>슬라이드쇼 화면을 <b>마우스로 한 번 클릭</b></li><li>PC가 <b>한글 입력 상태</b>면 글자 단축키가 안 먹을 수 있다</li><li>구글 슬라이드면 위쪽 <b>[구글]</b>로 바꾼다</li><li>점이 <b>회색</b>이면 노트북 블루투스 연결부터</li></ul><p class="note">포인터 터치패드는 <b>손톱이나 펜으로 꾹 누른 채</b> 문지릅니다. 살짝 대면 끊겨서 클릭으로 읽힐 수 있어요.</p></section><section class="slide"><div class="mark"><span class="n">3</span><span>보드를 수업용 프레젠터로</span></div><h2>짝 노트북으로 옮겨 연결하기</h2><ul class="pts"><li>우리 조 노트북: <b>블루투스 끄기</b></li><li>짝 노트북: <b>장치 추가 → Bluetooth</b> → 같은 보드 이름</li><li>보드 제목줄 점이 다시 <b>초록</b>이면 OK</li><li>다음부터는 <b>켜져 있는 노트북</b>으로 이어진다</li></ul><p class="note">보드는 한 번에 노트북 한 대와만 연결됩니다. 둘 다 블루투스가 켜져 있으면 먼저 찾은 쪽으로 붙습니다.</p></section><section class="slide punch"><div class="mark"><span class="n">3</span><span>보드를 수업용 프레젠터로</span></div><p class="lead">실제로 써 보기</p><p class="big">내 PPT를 넘겨 보세요</p><p class="sub">두 분이 <b>각자의 PPT</b>로 번갈아 써 봅니다.<br>화면을 안 보고 <b>BOOT 버튼</b>로도 넘겨 보세요.</p></section><section class="slide"><div class="mark"><span class="n">3</span><span>보드를 수업용 프레젠터로</span></div><h2>교탁 도우미 완성</h2><div class="boards"><figure><div class="bframe"><img src="shots/board_home.png" alt="네 칸 모두 켜짐 (시계는 처음부터)"></div><figcaption>네 칸 모두 켜짐 (시계는 처음부터)</figcaption></figure><figure><div class="bframe"><img src="shots/board_settings.png" alt="설정 — 켜면 바로 프레젠터"></div><figcaption>설정 — 켜면 바로 프레젠터</figcaption></figure></div><p class="note">설정의 <b>켜면 바로 시작</b>을 [발표]로 두면, 전원을 켜자마자 프레젠터가 켜집니다.</p></section><section class="slide"><div class="mark"><span class="n">3</span><span>보드를 수업용 프레젠터로</span></div><h2>가져가서 해 보기 — 우리 반 홈페이지</h2><div class="twocol"><ul class="pts"><li>같은 바이브코딩으로 <b>칠판 TV에 띄울 안내판</b></li><li>시간표 · 알림장 · D-day · 모둠 뽑기 · 타이머</li><li>보드 없이 <b>브라우저만</b> 있으면 됩니다</li><li>홈 화면의 <b>가져가서 해 보기</b>에 링크가 있습니다</li></ul><div class="shotbox"><div class="chrome"><i></i><i></i><i></i><span>우리 반 홈페이지</span></div><div class="body"><img src="shots/class_portal.png" alt="" onerror="this.style.display='none';this.parentNode.insertAdjacentText('beforeend','여기에 우리 반 홈페이지 예시 캡처 — shots/class_portal.png')"></div></div></div></section><section class="slide"><div class="mark"><span class="n">3</span><span>보드를 수업용 프레젠터로</span></div><h2>연수가 끝난 뒤에</h2><ul class="pts"><li>프레젠터에 <b>바로가기 장</b> — 나이스·클래스룸을 한 번에</li><li>지뢰찾기 자리를 <b>다른 게임</b>으로 바꾸기</li><li>타이머 신호등 시간을 <b>우리 반 활동</b>에 맞추기</li><li>막히면 워크벤치의 <b>완성 코드</b>로 되돌아오기</li></ul></section><section class="slide punch"><div class="mark"><span class="n">3</span><span>보드를 수업용 프레젠터로</span></div><p class="lead">수고하셨습니다</p><p class="big">교탁 도우미 완성</p><p class="sub">내일 첫 수업부터 써 보세요.</p></section>
+  </div>
+  <div class="rail"><i id="fill"></i></div>
+  <div class="bar">
+    <button id="prev">← 이전</button>
+    <button id="next">다음 →</button>
+    <span class="count"><b id="cur">1</b> / 18</span>
+    <span class="sp"></span>
+    <a href="index.html">🏠 홈</a>
+    <a href="workbench.html#l3">🛠️ 워크벤치</a>
+    <a href="slides-1.html">1차시</a><a href="slides-2.html">2차시</a>
+  </div>
+</div>
+<script>
+var slides = document.querySelectorAll('.slide');
+var deck = document.getElementById('deck');
+var i = 0;
+function show(n){
+  i = Math.max(0, Math.min(slides.length - 1, n));
+  slides.forEach(function(s, k){ s.classList.toggle('on', k === i); });
+  document.getElementById('cur').textContent = (i + 1);
+  document.getElementById('fill').style.width = ((i + 1) / slides.length * 100) + '%';
+  document.getElementById('prev').disabled = (i === 0);
+  document.getElementById('next').disabled = (i === slides.length - 1);
+  try {
+    if (location.hash !== '#' + (i + 1)) history.replaceState(null, '', '#' + (i + 1));
+  } catch (e) { /* 미리보기 창이나 일부 환경에서는 주소를 바꿀 수 없음 — 넘어감 */ }
+  slides[i].scrollTop = 0;
+}
+document.addEventListener('keydown', function(e){
+  if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') { e.preventDefault(); show(i + 1); }
+  if (e.key === 'ArrowLeft'  || e.key === 'PageUp')  { e.preventDefault(); show(i - 1); }
+  if (e.key === 'Home') show(0);
+  if (e.key === 'End')  show(slides.length - 1);
+});
+document.getElementById('prev').addEventListener('click', function(){ show(i - 1); });
+document.getElementById('next').addEventListener('click', function(){ show(i + 1); });
+
+/* 발표 중에는 조작부를 감춘다. 마우스를 움직이면 2.5초 동안 나타난다. */
+var hideT = null;
+function peek(){
+  deck.classList.add('show');
+  clearTimeout(hideT);
+  hideT = setTimeout(function(){ deck.classList.remove('show'); }, 2500);
+}
+['mousemove','touchstart'].forEach(function(ev){
+  document.addEventListener(ev, peek, {passive:true});
+});
+document.querySelector('.bar').addEventListener('mouseenter', function(){
+  deck.classList.add('show'); clearTimeout(hideT);
+});
+document.addEventListener('focusin', function(e){
+  if (e.target.closest && e.target.closest('.bar')) { deck.classList.add('show'); clearTimeout(hideT); }
+});
+
+var t0 = null;
+document.querySelector('.stage').addEventListener('touchstart', function(e){ t0 = e.changedTouches[0].clientX; }, {passive:true});
+document.querySelector('.stage').addEventListener('touchend', function(e){
+  if (t0 === null) return;
+  var d = e.changedTouches[0].clientX - t0;
+  if (Math.abs(d) > 60) show(d < 0 ? i + 1 : i - 1);
+  t0 = null;
+}, {passive:true});
+function fromHash(){
+  var n = 0;
+  try { n = (parseInt((location.hash || '#1').slice(1), 10) - 1) || 0; } catch (e) { n = 0; }
+  return n;
+}
+addEventListener('hashchange', function(){
+  var n = fromHash();
+  if (n !== i) show(n);
+});
+show(fromHash());
+peek();
+</script>
+</body>
+</html>

@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#171A2E">
+<title>1차시 · 보드에 첫 앱 올리고 지뢰찾기 바꾸기</title>
+<style>
+:root{
+  --ink:#171A2E; --ink-2:#232846; --paper:#F3F3F8; --white:#fff;
+  --accent:#C8430E; --accent-dim:#A8370B; --accent-soft:#FFF0E8;
+  --spark:#FFD400; --line:#DCDCE8; --muted:#62648A; --dim:#A8ABD0;
+}
+*{box-sizing:border-box}
+/* 한글이 단어 중간에서 끊기지 않게 — '메뉴에서'의 '서'만 내려가는 일을 막는다 */
+h2,.sub,.note,.big,.lead,figcaption,ul.pts li,.step b,.step span,.tlrow .d,
+.cover h1,.cover p,.shotbox .body{word-break:keep-all;overflow-wrap:break-word}
+html,body{height:100%}
+body{margin:0;background:var(--paper);color:var(--ink);overflow:hidden;
+  font-family:-apple-system,"Malgun Gothic","Apple SD Gothic Neo",sans-serif}
+.deck{height:100vh;position:relative}
+.stage{position:absolute;inset:0;overflow:hidden}
+.slide{position:absolute;inset:0;display:none;flex-direction:column;justify-content:center;
+  padding:11vh 5vw 8vh;overflow:auto}
+.slide.on{display:flex}
+
+/* 차시 표지 — 슬라이드 모서리에 고정, 본문 흐름 밖 */
+.mark{position:absolute;left:5vw;top:4.4vh;display:flex;align-items:center;
+  gap:clamp(9px,.9vw,15px);font-size:clamp(13px,1.35vw,21px);color:var(--muted)}
+.mark .n{background:var(--ink);color:var(--paper);font-weight:700;
+  width:clamp(26px,2.5vw,40px);height:clamp(26px,2.5vw,40px);border-radius:4px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:clamp(14px,1.45vw,23px);font-variant-numeric:tabular-nums}
+
+h2{font-size:clamp(28px,4.4vw,72px);line-height:1.18;margin:0 0 clamp(16px,2.6vh,38px);
+  letter-spacing:-.035em;font-weight:700}
+.sub{font-size:clamp(17px,2.2vw,36px);line-height:1.55;color:var(--muted);margin:0}
+.sub b{color:var(--ink);font-weight:700}
+
+/* 목록 — 상자가 아니라 가로줄로 나뉜 행 */
+ul.pts{list-style:none;margin:0;padding:0;border-top:1px solid var(--line)}
+ul.pts li{border-bottom:1px solid var(--line);padding:clamp(13px,2.1vh,27px) 0
+  clamp(13px,2.1vh,27px) clamp(26px,2.6vw,46px);position:relative;
+  font-size:clamp(17px,2.3vw,41px);line-height:1.38}
+ul.pts li::before{content:"";position:absolute;left:0;top:calc(.62em);
+  width:clamp(9px,.85vw,15px);height:clamp(9px,.85vw,15px);background:var(--accent);
+  border-radius:2px}
+ul.pts li b{font-weight:700}
+ul.pts li:nth-last-child(n+5),ul.pts li:nth-last-child(n+5)~li{
+  padding-top:clamp(10px,1.5vh,20px);padding-bottom:clamp(10px,1.5vh,20px);
+  font-size:clamp(16px,2vw,34px)}
+ul.pts:has(li:nth-child(2):last-child) li,
+ul.pts:has(li:nth-child(3):last-child) li{
+  padding-top:clamp(20px,3.6vh,52px);padding-bottom:clamp(20px,3.6vh,52px);
+  font-size:clamp(19px,2.65vw,48px)}
+/* 목록(왼쪽) + 캡처(오른쪽) 2단 — 글만으로는 어느 탭인지 못 찾는 화면용 */
+.twocol{display:grid;grid-template-columns:1fr 1fr;gap:clamp(20px,2.6vw,46px);align-items:start}
+.twocol .pts{margin-top:0}
+.twocol .shotbox{margin-top:0;height:100%}
+.twocol .shotbox img{max-height:44vh}
+.note{margin:clamp(16px,2.4vh,32px) 0 0;font-size:clamp(14px,1.75vw,29px);
+  color:var(--muted);line-height:1.5}
+.note b{color:var(--accent-dim);font-weight:700}
+
+/* 단계 카드 — 테두리 없이 위쪽 굵은 선 */
+.steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,215px),1fr));
+  gap:clamp(16px,2.1vw,36px)}
+.step{border-top:5px solid var(--accent);padding:clamp(14px,2vh,28px) 0 0}
+.step .ic{font-size:clamp(28px,3.3vw,54px);line-height:1.1}
+.step .ic.num{background:var(--ink);color:var(--paper);width:clamp(32px,2.8vw,46px);
+  height:clamp(32px,2.8vw,46px);border-radius:5px;display:flex;align-items:center;
+  justify-content:center;font-weight:700;font-size:clamp(17px,1.7vw,27px);
+  font-variant-numeric:tabular-nums}
+.step > b{display:block;font-size:clamp(18px,2.35vw,39px);margin:clamp(9px,1.3vh,18px) 0 5px;
+  letter-spacing:-.025em;line-height:1.25}
+.step span{color:var(--muted);font-size:clamp(15px,1.9vw,31px);line-height:1.42}
+
+/* 화면 캡처 자리 — 브라우저 창 모양 */
+.shotbox{margin-top:clamp(8px,1.4vh,18px);border:1px solid var(--line);border-radius:10px;
+  background:var(--white);overflow:hidden;display:flex;flex-direction:column;
+  flex:1 1 auto;max-height:62vh}
+.shotbox .chrome{background:var(--ink);color:var(--dim);display:flex;align-items:center;
+  gap:9px;padding:clamp(6px,.9vh,11px) clamp(11px,1.1vw,18px);
+  font-family:ui-monospace,Consolas,"D2Coding",monospace;font-size:clamp(11px,1.15vw,18px)}
+.shotbox .chrome span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.shotbox .chrome i{width:clamp(7px,.62vw,11px);height:clamp(7px,.62vw,11px);
+  border-radius:50%;background:#464C78;display:block}
+.shotbox .chrome i:first-child{background:var(--spark)}
+.shotbox .body{flex:1;display:flex;align-items:center;justify-content:center;text-align:center;
+  padding:clamp(16px,3vh,34px);min-height:38vh;color:var(--muted);
+  font-size:clamp(13px,1.5vw,23px);background:repeating-linear-gradient(135deg,
+    #fff 0 11px,#FAFAFD 11px 22px)}
+.shotbox img{max-width:100%;max-height:52vh;display:block;border-radius:4px}
+
+figure{margin:0;display:flex;flex-direction:column;align-items:center;gap:clamp(8px,1.6vh,20px);width:100%}
+figure svg{width:100%;height:auto;max-height:58vh}
+figcaption{color:var(--muted);font-size:clamp(13px,1.55vw,25px);text-align:center;
+  max-width:46em;line-height:1.45}
+
+/* 표지 */
+.cover{background:var(--ink);color:var(--white);justify-content:flex-end;
+  padding-bottom:15vh}
+.cover .ses{display:flex;align-items:baseline;gap:clamp(10px,1vw,18px);margin:0 0 clamp(14px,2vh,26px)}
+.cover .ses .num{font-size:clamp(46px,8vw,132px);font-weight:700;line-height:.82;
+  color:var(--spark);letter-spacing:-.05em;font-variant-numeric:tabular-nums}
+.cover .ses .of{font-size:clamp(15px,1.7vw,26px);color:var(--dim)}
+.cover h1{font-size:clamp(30px,5.4vw,88px);line-height:1.14;margin:0 0 clamp(10px,1.6vh,22px);
+  letter-spacing:-.04em;font-weight:700}
+.cover p{font-size:clamp(17px,2.3vw,38px);color:var(--dim);margin:0;max-width:30em;line-height:1.4}
+.cover .course{position:absolute;left:5vw;top:4.4vh;font-size:clamp(12px,1.3vw,19px);
+  color:#6E72A8}
+.three{display:flex;gap:clamp(5px,.55vw,10px);margin:0 0 clamp(16px,2.6vh,34px)}
+.three span{width:clamp(34px,3.4vw,58px);height:clamp(7px,.85vh,13px);border-radius:2px;
+  background:#2E3356;display:block}
+.three span.done{background:#454B7C}
+.three span.now{background:var(--spark)}
+
+/* 타임라인 — 블록 길이를 막대 너비로 보여 준다 */
+.tl{display:flex;flex-direction:column;border-top:1px solid var(--line)}
+.tlrow{display:flex;align-items:center;gap:clamp(14px,1.6vw,30px);
+  border-bottom:1px solid var(--line);padding:clamp(12px,2.2vh,30px) 0}
+.tlrow .t{font-variant-numeric:tabular-nums;font-weight:700;color:var(--ink);
+  font-size:clamp(14px,1.75vw,30px);white-space:nowrap;
+  font-family:ui-monospace,Consolas,"D2Coding",monospace;letter-spacing:-.05em;
+  flex:0 0 auto;min-width:6.2em}
+.tlrow .d{font-size:clamp(16px,2.1vw,37px);flex:1 1 auto;min-width:0}
+.tlrow .track{flex:0 0 32%;height:clamp(9px,1.05vh,16px);background:#E2E2EE;
+  border-radius:3px;overflow:hidden}
+.tlrow .len{display:block;height:100%;background:var(--accent);border-radius:3px}
+.tlrow:last-child .len{background:var(--spark)}
+
+/* 한 문장 슬라이드 — 잉크 바탕 */
+.punch{background:var(--ink);color:var(--white)}
+.punch .mark{color:var(--dim)}
+.punch .mark .n{background:var(--spark);color:var(--ink)}
+.lead{font-size:clamp(16px,2vw,32px);font-weight:700;color:var(--accent);
+  margin:0 0 clamp(10px,1.5vh,20px);line-height:1.3;letter-spacing:-.02em}
+.punch .lead{color:var(--spark)}
+.big{font-size:clamp(33px,6.6vw,108px);font-weight:700;line-height:1.08;
+  margin:0 0 clamp(14px,2.2vh,30px);letter-spacing:-.045em}
+.punch .sub{color:var(--dim)}
+.punch .sub b{color:var(--white)}
+
+/* 하단 — 평소엔 진행선만, 마우스를 움직이면 조작부가 올라온다 */
+.rail{position:absolute;left:0;right:0;bottom:0;height:4px;background:#E2E2EE;z-index:5}
+.punch~.rail,.cover~.rail{background:#2E3356}
+.rail i{display:block;height:100%;width:0;background:var(--accent);transition:width .22s}
+.bar{position:absolute;left:0;right:0;bottom:0;display:flex;align-items:center;gap:13px;
+  padding:9px 16px 12px;background:rgba(255,255,255,.96);border-top:1px solid var(--line);
+  z-index:6;transform:translateY(105%);transition:transform .2s ease;
+  -webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+.deck.show .bar{transform:translateY(0)}
+.bar button{background:var(--accent);color:#fff;border:0;border-radius:7px;padding:8px 15px;
+  font-size:14.5px;cursor:pointer;font-family:inherit}
+.bar button:hover{background:var(--accent-dim)}
+.bar button:disabled{background:#B9BAD2;cursor:default}
+.bar .count{font-variant-numeric:tabular-nums;color:var(--muted);font-size:14.5px;
+  font-family:ui-monospace,Consolas,monospace}
+.bar .sp{flex:1}
+.bar a{color:var(--muted);text-decoration:none;font-size:14px;padding:5px 9px;border-radius:7px}
+.bar a:hover{background:var(--accent-soft);color:var(--accent-dim)}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.punch :focus-visible,.cover :focus-visible{outline-color:var(--spark)}
+
+@media (max-width:600px){
+  .twocol{grid-template-columns:1fr}
+  .slide{padding:9vh 6vw 7vh}
+  .bar a{display:none}
+  .tlrow .len{display:none}
+  .tlrow .t{min-width:4.6em}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+@media print{
+  body{overflow:visible} .deck{height:auto;position:static} .stage{position:static}
+  .slide{display:flex!important;position:static;page-break-after:always;min-height:95vh;
+    border-bottom:1px solid #ccc}
+  .bar,.rail{display:none}
+  .cover,.punch{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}
+
+/* 보드 화면 — 실제 2.8인치 화면 비율(3:4)의 검은 테두리 */
+.boards{display:flex;justify-content:center;gap:clamp(14px,2.2vw,40px);flex-wrap:wrap;width:100%}
+.boards figure{width:auto;flex:0 1 auto}
+.bframe{background:#0B0D1A;border-radius:clamp(10px,1.2vw,18px);padding:clamp(7px,.8vw,13px);
+  box-shadow:0 10px 30px rgba(23,26,46,.22)}
+.bframe img{display:block;height:clamp(180px,44vh,520px);width:auto;border-radius:4px;
+  image-rendering:pixelated}
+.boards.four .bframe img{height:clamp(150px,36vh,430px)}
+.keys{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr));
+  gap:clamp(10px,1.4vw,22px)}
+.key{display:flex;align-items:center;gap:clamp(10px,1.2vw,20px);border-bottom:1px solid var(--line);
+  padding:clamp(8px,1.4vh,18px) 0}
+.key kbd{font-family:ui-monospace,Consolas,monospace;background:var(--white);border:1px solid var(--line);
+  border-bottom-width:3px;border-radius:7px;padding:3px 10px;font-size:clamp(14px,1.6vw,26px);
+  white-space:nowrap;font-weight:700}
+.key span{font-size:clamp(15px,1.8vw,30px)}
+.twocol.pb{grid-template-columns:2.2fr 1fr;align-items:center}
+.tl.dense .tlrow{padding:clamp(6px,1.1vh,17px) 0}
+.tl.dense .tlrow .d{font-size:clamp(15px,1.9vw,33px)}
+.twocol.pb .bframe img{height:clamp(150px,38vh,440px)}
+@media (max-width:760px){.twocol.pb{grid-template-columns:1fr}}
+
+</style>
+</head>
+<body>
+<div class="deck" id="deck">
+  <div class="stage">
+<section class="slide cover"><div class="course">바이브코딩으로 만드는 교탁 도우미</div><div class="three"><span class="now"></span><span class=""></span><span class=""></span></div><p class="ses"><span class="num">1</span><span class="of">차시 / 전체 3차시</span></p><h1>보드에 첫 앱 올리고 지뢰찾기 바꾸기</h1><p>이 시간이 끝나면 교탁 위에 내 기기가 켜집니다</p></section><section class="slide"><div class="mark"><span class="n">1</span><span>보드에 첫 앱 올리고 지뢰찾기 바꾸기</span></div><h2>이번 차시 흐름 · 50분</h2><div class="tl"><div class="tlrow"><span class="t">00~06분</span><span class="d">오늘의 목표 · 2인 1조 · 바이브코딩</span><span class="track"><i class="len" style="width:12.0%"></i></span></div><div class="tlrow"><span class="t">06~16분</span><span class="d">보드 연결과 업로드 환경</span><span class="track"><i class="len" style="width:20.0%"></i></span></div><div class="tlrow"><span class="t">16~26분</span><span class="d">교탁 도우미 올리고 이름 바꾸기</span><span class="track"><i class="len" style="width:20.0%"></i></span></div><div class="tlrow"><span class="t">26~44분</span><span class="d">AI로 지뢰찾기 바꾸기</span><span class="track"><i class="len" style="width:36.0%"></i></span></div><div class="tlrow"><span class="t">44~50분</span><span class="d">정리 · AI를 쓸 때의 약속</span><span class="track"><i class="len" style="width:12.0%"></i></span></div></div><p class="note">시간은 안내일 뿐입니다. 업로드에서 막히는 분이 많으면 실습 시간을 늘립니다.</p></section><section class="slide punch"><div class="mark"><span class="n">1</span><span>보드에 첫 앱 올리고 지뢰찾기 바꾸기</span></div><p class="lead">코딩을 몰라도 기기를 만들 수 있을까</p><p class="big">있습니다.</p><p class="sub">만들고 싶은 것을 <b>말로 설명하면</b> AI가 코드를 써 줍니다.<br>우리는 그 코드를 <b>보드에 올리기만</b> 합니다.</p></section><section class="slide"><div class="mark"><span class="n">1</span><span>보드에 첫 앱 올리고 지뢰찾기 바꾸기</span></div><h2>바이브코딩으로 보드 앱 만들기</h2><figure><svg viewBox="0 0 1000 250" role="img" aria-label="바이브코딩으로 보드 앱 만들기"><defs><marker id="a" markerWidth="11" markerHeight="8" refX="10" refY="4" orient="auto"><path d="M0 0 L11 4 L0 8 z" fill="#C8430E"/></marker></defs><g text-anchor="middle"><rect x="6" y="50" width="180" height="132" rx="16" fill="#fff" stroke="#DCDCE8" stroke-width="2"/><text x="96" y="96" font-size="36">🙋</text><text x="96" y="130" font-size="20" font-weight="700" fill="#171A2E">나</text><text x="96" y="156" font-size="15" fill="#62648A">만들고 싶은 기능</text><rect x="208" y="50" width="180" height="132" rx="16" fill="#FFF0E8" stroke="#C8430E" stroke-width="2"/><text x="298" y="96" font-size="36">💬</text><text x="298" y="130" font-size="20" font-weight="700" fill="#A8370B">말로 설명</text><text x="298" y="156" font-size="15" fill="#62648A">제미나이에게</text><rect x="410" y="50" width="180" height="132" rx="16" fill="#fff" stroke="#DCDCE8" stroke-width="2"/><text x="500" y="96" font-size="36">🤖</text><text x="500" y="130" font-size="20" font-weight="700" fill="#171A2E">AI가 코드 작성</text><text x="500" y="156" font-size="15" fill="#62648A">앱 파일 하나</text><rect x="612" y="50" width="180" height="132" rx="16" fill="#fff" stroke="#DCDCE8" stroke-width="2"/><text x="702" y="96" font-size="36">💻</text><text x="702" y="130" font-size="20" font-weight="700" fill="#171A2E">아두이노 IDE</text><text x="702" y="156" font-size="15" fill="#62648A">탭에 붙여넣기</text><rect x="814" y="50" width="180" height="132" rx="16" fill="#A8370B" stroke="#A8370B" stroke-width="2"/><text x="904" y="96" font-size="36">📟</text><text x="904" y="130" font-size="20" font-weight="700" fill="#fff">보드에서 작동</text><text x="904" y="156" font-size="15" fill="#FFE3D3">업로드 1~2분</text><g stroke="#C8430E" stroke-width="3" marker-end="url(#a)"><line x1="188" y1="116" x2="202" y2="116"/><line x1="390" y1="116" x2="404" y2="116"/><line x1="592" y1="116" x2="606" y2="116"/><line x1="794" y1="116" x2="808" y2="116"/></g><text x="500" y="226" font-size="18" fill="#62648A">내가 할 일은 <tspan font-weight="700" fill="#A8370B">설명하기 · 붙여넣기 · 확인하기</tspan></text></g></svg><figcaption>코드를 직접 쓰지 않습니다. 설명하고, 붙여넣고, 눌러서 확인합니다.</figcaption></figure></section><section class="slide"><div class="mark"><span class="n">1</span><span>보드에 첫 앱 올리고 지뢰찾기 바꾸기</span></div><h2>세 시간 뒤 여러분 교탁 위에</h2><div class="boards"><figure><div class="bframe"><img src="shots/board_home.png" alt="첫 화면에서 고르기"></div><figcaption>첫 화면에서 고르기</figcaption></figure><figure><div class="bframe"><img src="shots/board_timer_yellow.png" alt="타이머 신호등"></div><figcaption>타이머 신호등</figcaption></figure><figure><div class="bframe"><img src="shots/board_pres_slide.png" alt="PPT 프레젠터"></div><figcaption>PPT 프레젠터</figcaption></figure></div><p class="note">한 차시에 하나씩 기능이 늘어나, 마지막에는 한 기기에 세 가지가 다 들어갑니다.</p></section><section class="slide"><div class="mark"><span class="n">1</span><span>보드에 첫 앱 올리고 지뢰찾기 바꾸기</span></div><h2>2인 1조로 합니다</h2><ul class="pts"><li><b>보드 1개 · 우리 조 노트북 1대</b> — 코드와 AI 대화는 이 노트북 한 대에서</li><li>🧑‍💻 <b>운전석</b> — 키보드·마우스: 제미나이에 붙여 넣기 · 업로드</li><li>🧭 <b>조수석</b> — 워크벤치를 보며 다음 할 일 읽어 주기 · 보드 눌러 확인</li><li>실습 <b>절반마다 자리 바꾸기</b> — 노트북은 그대로, 사람만</li></ul><p class="note">두 번째 노트북은 워크벤치·가이드북을 띄워 두는 용도입니다. 3차시에는 두 노트북 모두 보드와 블루투스로 이어 봅니다.</p></section><section class="slide"><div class="mark"><span class="n">1</span><span>보드에 첫 앱 올리고 지뢰찾기 바꾸기</span></div><h2>오늘 쓰는 보드</h2><div class="twocol"><ul class="pts"><li><b>2.8인치 저항식 터치 화면</b> — 세로 240×320</li><li><b>손톱·펜 끝으로 꾹</b> 눌러야 인식 (손가락으로 톡 X)</li><li><b>스피커 단자 · RGB LED</b> · 리튬 배터리 단자</li><li><b>블루투스</b>로 노트북과 무선 연결</li></ul><div class="shotbox"><div class="chrome"><i></i><i></i><i></i><span>LCDwiki E32R28T-1</span></div><div class="body"><img src="shots/board_photo_e32.jpg" alt="" onerror="this.style.display='none';this.parentNode.insertAdjacentText('beforeend','여기에 E32R28T-1 보드 실물 사진 캡처 — shots/board_photo_e32.jpg')"></div></div></div></section><section class="slide"><div class="mark"><span class="n">1</span><span>보드에 첫 앱 올리고 지뢰찾기 바꾸기</span></div><h2>업로드 환경 확인</h2><div class="steps"><div class="step"><div class="ic num">1</div><b>아두이노 IDE</b><span>2.x 버전</span></div><div class="step"><div class="ic num">2</div><b>보드 패키지</b><span><b>esp32</b> by Espressif 3.x</span></div><div class="step"><div class="ic num">3</div><b>라이브러리</b><span><b>LovyanGFX</b></span></div><div class="step"><div class="ic num">4</div><b>USB 드라이버</b><span>포트가 안 보이면 <b>CH340</b></span></div></div><p class="note">미리 설치해 오셨다면 확인만 합니다. 아직이면 가이드북의 <b>준비</b> 칸을 따라 하세요.</p></section><section class="slide"><div class="mark"><span class="n">1</span><span>보드에 첫 앱 올리고 지뢰찾기 바꾸기</span></div><h2>Tools 메뉴 설정</h2><div class="twocol"><ul class="pts"><li>Board: <b>ESP32 Dev Module</b> (S3 아님)</li><li>Partition Scheme: <b>Huge APP</b></li><li>PSRAM: <b>Disabled</b> · Flash Size: <b>4MB</b></li><li>Port: 보드를 꽂으면 생기는 <b>COM 번호</b></li></ul><div class="shotbox"><div class="chrome"><i></i><i></i><i></i><span>아두이노 IDE — Tools</span></div><div class="body"><img src="shots/ide_tools_esp32.png" alt="" onerror="this.style.display='none';this.parentNode.insertAdjacentText('beforeend','여기에 ESP32 Dev Module Tools 메뉴 설정 화면 캡처 — shots/ide_tools_esp32.png')"></div></div></div></section><section class="slide punch"><div class="mark"><span class="n">1</span><span>보드에 첫 앱 올리고 지뢰찾기 바꾸기</span></div><p class="lead">가장 많이 막히는 한 줄</p><p class="big">Huge APP</p><p class="sub">Partition Scheme을 바꾸지 않으면 <b>Sketch too big</b>이 뜹니다.<br>한글 글꼴이 들어 있어 코드가 큽니다.</p></section><section class="slide"><div class="mark"><span class="n">1</span><span>보드에 첫 앱 올리고 지뢰찾기 바꾸기</span></div><h2>교탁 도우미의 구조</h2><figure><svg viewBox="0 0 1000 300" role="img" aria-label="교탁 도우미 파일 구조"><defs><marker id="a" markerWidth="11" markerHeight="8" refX="10" refY="4" orient="auto"><path d="M0 0 L11 4 L0 8 z" fill="#C8430E"/></marker></defs><g text-anchor="middle"><rect x="20" y="20" width="420" height="260" rx="16" fill="#fff" stroke="#DCDCE8" stroke-width="2"/><text x="230" y="52" font-size="18" font-weight="700" fill="#62648A">본체 — 고치지 않아요</text><rect x="40" y="70" width="180" height="64" rx="10" fill="#F0EFF9" stroke="#DCDCE8" stroke-width="2"/><text x="130" y="97" font-size="16" font-family="ui-monospace,Consolas,monospace" font-weight="700" fill="#62648A">ClassHelper.ino</text><text x="130" y="120" font-size="14" fill="#62648A">첫 화면 · 설정</text><rect x="240" y="70" width="180" height="64" rx="10" fill="#F0EFF9" stroke="#DCDCE8" stroke-width="2"/><text x="330" y="97" font-size="16" font-family="ui-monospace,Consolas,monospace" font-weight="700" fill="#62648A">helper.h</text><text x="330" y="120" font-size="14" fill="#62648A">앱 규칙 · 버튼 그리기</text><rect x="40" y="150" width="180" height="64" rx="10" fill="#F0EFF9" stroke="#DCDCE8" stroke-width="2"/><text x="130" y="177" font-size="16" font-family="ui-monospace,Consolas,monospace" font-weight="700" fill="#62648A">config.h</text><text x="130" y="200" font-size="14" fill="#62648A">기기 이름 ✏️</text><rect x="240" y="150" width="180" height="64" rx="10" fill="#F0EFF9" stroke="#DCDCE8" stroke-width="2"/><text x="330" y="177" font-size="16" font-family="ui-monospace,Consolas,monospace" font-weight="700" fill="#62648A">sfx · touch · ble</text><text x="330" y="200" font-size="14" fill="#62648A">소리 · 터치 · 블루투스</text><text x="230" y="256" font-size="15" fill="#9A9CBC">화면·터치·소리 설정은 미리 다 되어 있어요</text><rect x="520" y="20" width="460" height="260" rx="16" fill="#FFF0E8" stroke="#C8430E" stroke-width="2.5"/><text x="750" y="52" font-size="18" font-weight="700" fill="#A8370B">앱 파일 — AI와 함께 고치는 곳</text><rect x="545" y="70" width="410" height="64" rx="10" fill="#fff" stroke="#C8430E" stroke-width="2"/><text x="750" y="97" font-size="16" font-family="ui-monospace,Consolas,monospace" font-weight="700" fill="#A8370B">app_mine.h</text><text x="750" y="120" font-size="14" fill="#62648A">💣 지뢰찾기 — 1차시</text><rect x="545" y="140" width="410" height="64" rx="10" fill="#fff" stroke="#C8430E" stroke-width="2"/><text x="750" y="167" font-size="16" font-family="ui-monospace,Consolas,monospace" font-weight="700" fill="#A8370B">app_timer.h</text><text x="750" y="190" font-size="14" fill="#62648A">⏱️ 타이머 신호등 — 2차시</text><rect x="545" y="210" width="410" height="64" rx="10" fill="#fff" stroke="#C8430E" stroke-width="2"/><text x="750" y="237" font-size="16" font-family="ui-monospace,Consolas,monospace" font-weight="700" fill="#A8370B">app_presenter.h</text><text x="750" y="260" font-size="14" fill="#62648A">🎤 프레젠터 — 3차시</text><g stroke="#C8430E" stroke-width="3" marker-end="url(#a)"><line x1="446" y1="150" x2="512" y2="150"/></g></g></svg><figcaption>본체는 미리 다 만들어 두었습니다. 여러분이 고치는 곳은 매번 앱 파일 하나뿐입니다.</figcaption></figure></section><section class="slide"><div class="mark"><span class="n">1</span><span>보드에 첫 앱 올리고 지뢰찾기 바꾸기</span></div><h2>올리기 네 단계</h2><div class="steps"><div class="step"><div class="ic num">1</div><b>압축 풀기</b><span><code>ClassHelper_template.zip</code> — 바탕화면에</span></div><div class="step"><div class="ic num">2</div><b>열기</b><span><b>ClassHelper.ino</b> 더블클릭 → 탭 13개</span></div><div class="step"><div class="ic num">3</div><b>업로드</b><span>왼쪽 위 → 버튼 · 첫 번째는 2~4분</span></div><div class="step"><div class="ic num">4</div><b>확인</b><span><b>Done uploading</b> 뒤 보드 화면</span></div></div><p class="note">첫 업로드는 오래 걸립니다. 기다리는 동안 다음 장을 봅니다.<br>아래 검은 창에 <b style="color:#D93025">빨간 글자</b>가 뜨면 → 빨간 줄을 통째로 복사해 AI에게 <b>"이 오류를 쉽게 설명하고 고쳐 줘"</b></p></section><section class="slide"><div class="mark"><span class="n">1</span><span>보드에 첫 앱 올리고 지뢰찾기 바꾸기</span></div><h2>처음 켜지면 — 터치 보정</h2><div class="twocol pb"><ul class="pts"><li>네 귀퉁이에 <b>+</b> 가 차례로 나온다</li><li>가운데를 <b>손톱·펜 끝으로 꾹</b> 눌렀다 떼기 × 4</li><li>한 번 하면 보드가 기억 — 코드를 다시 올려도 그대로</li><li>어긋나면 설정 → 점검 → <b>[터치 보정]</b></li></ul><div class="boards"><figure><div class="bframe"><img src="shots/board_e32_cal.png" alt="처음 켤 때 — 터치 보정"></div><figcaption>처음 켤 때 — 터치 보정</figcaption></figure></div></div><p class="note">저항식 화면은 <b>누르는 힘</b>으로 인식합니다. 한 귀퉁이를 잘못 누르면 "한 번 더 해 볼게요"가 뜨며 다시 합니다.</p></section><section class="slide"><div class="mark"><span class="n">1</span><span>보드에 첫 앱 올리고 지뢰찾기 바꾸기</span></div><h2>이렇게 뜨면 성공</h2><div class="boards"><figure><div class="bframe"><img src="shots/board_home_t.png" alt="첫 화면 — 지뢰찾기 · 탁상시계"></div><figcaption>첫 화면 — 지뢰찾기 · 탁상시계</figcaption></figure><figure><div class="bframe"><img src="shots/board_mine_play.png" alt="지뢰찾기"></div><figcaption>지뢰찾기</figcaption></figure></div><p class="note">회색 칸 두 개는 2·3차시에 하나씩 켜집니다. 왼쪽 위 🏠를 길게 누르면 첫 화면으로 돌아옵니다.</p></section><section class="slide"><div class="mark"><span class="n">1</span><span>보드에 첫 앱 올리고 지뢰찾기 바꾸기</span></div><h2>첫 수정은 AI 없이</h2><div class="steps"><div class="step"><div class="ic num">1</div><b>config.h 탭</b><span>맨 위 ✏️ 표시가 있는 세 줄</span></div><div class="step"><div class="ic num">2</div><b>마음대로 바꾸기</b><span>제목 <b>12자</b> · 반 이름 <b>18자</b>까지 한글로<br>블루투스 이름은 <b>영어 16자</b>까지</span></div><div class="step"><div class="ic num">3</div><b>다시 업로드</b><span>두 번째부터는 빨라요</span></div><div class="step"><div class="ic num">4</div><b>확인</b><span>첫 화면 제목 아래가 바뀌었나</span></div></div><p class="note">반 이름 칸에는 <b>두 분 이름</b>을 적어도 됩니다. 블루투스 이름은 3차시에 노트북에서 고를 이름 — <b>영어·숫자 16자까지, 다른 조와 겹치지 않게</b> (예: <code>Team3-Science</code>). 큰따옴표 <b>" "</b>는 지우지 않습니다.</p></section><section class="slide punch"><div class="mark"><span class="n">1</span><span>보드에 첫 앱 올리고 지뢰찾기 바꾸기</span></div><p class="lead">이제 AI와 함께</p><p class="big">지뢰찾기를 내 것으로</p><p class="sub">워크벤치 1차시 프롬프트로<br><b>난이도 · 색 · 소리</b>를 바꿔 봅니다.</p></section><section class="slide"><div class="mark"><span class="n">1</span><span>보드에 첫 앱 올리고 지뢰찾기 바꾸기</span></div><h2>AI에게 고쳐 달라고 할 때</h2><ul class="pts"><li>고칠 <b>파일 전체</b>를 먼저 붙여 넣는다</li><li>바꿀 것을 <b>하나만</b> 말한다</li><li><b>바꾸기 전 → 바꾼 후</b>로 달라고 한다</li><li>업로드해서 <b>직접 눌러</b> 확인한다</li></ul><p class="note">지뢰찾기 파일은 600줄이 넘습니다. 전체를 다시 달라고 하면 중간이 잘릴 수 있어서, 바꿀 줄만 받습니다.</p></section><section class="slide"><div class="mark"><span class="n">1</span><span>보드에 첫 앱 올리고 지뢰찾기 바꾸기</span></div><h2>이런 답이 오면 됩니다</h2><p class="sub" style="margin-bottom:clamp(10px,1.8vh,24px)"><b>찾을 줄</b>과 <b>바꿀 줄</b>을 받아, 아두이노 IDE에서 Ctrl+F로 찾아 바꿉니다.</p><div class="shotbox"><div class="chrome"><i></i><i></i><i></i><span>gemini.google.com</span></div><div class="body"><img src="shots/gemini_answer.png" alt="" onerror="this.style.display='none';this.parentNode.insertAdjacentText('beforeend','여기에 제미나이의 바꾸기 전·후 답변 캡처 — shots/gemini_answer.png')"></div></div><p class="note"><b style="color:#C8430E">⚠ 붙여넣을 때</b> — 찾은 줄을 <b>줄 앞 빈칸부터 끝의 쉼표까지 통째로</b> 선택해 바꾸고, 앞쪽 들여쓰기는 <b>붙여넣기 전에 있던 코드와 똑같이</b> 맞춥니다. <b>{ } , " "</b> 가 하나라도 빠지거나 두 번 들어가면 빨간 오류가 납니다.</p></section><section class="slide"><div class="mark"><span class="n">1</span><span>보드에 첫 앱 올리고 지뢰찾기 바꾸기</span></div><h2>AI를 쓸 때의 약속</h2><ul class="pts"><li>학생 이름·성적 같은 <b>개인정보는 AI에 적지 않는다</b></li><li>AI가 준 코드가 틀릴 때가 있다 — <b>올려서 직접 확인</b>한다</li><li>만든 기기를 수업에 쓰는 <b>책임은 교사</b>에게 있다</li><li>학생과 해 볼 때는 AI 서비스의 <b>연령 기준</b>을 먼저 확인한다</li></ul></section><section class="slide punch"><div class="mark"><span class="n">1</span><span>보드에 첫 앱 올리고 지뢰찾기 바꾸기</span></div><p class="lead">다음 시간</p><p class="big">남은 시간을 보여 주는 신호등</p><p class="sub">보드의 시계로 <b>남은 시간</b>을 재서 화면 색으로 보여 줍니다.<br>알림음을 내려면 작은 스피커를 꽂아 둡니다.</p></section>
+  </div>
+  <div class="rail"><i id="fill"></i></div>
+  <div class="bar">
+    <button id="prev">← 이전</button>
+    <button id="next">다음 →</button>
+    <span class="count"><b id="cur">1</b> / 20</span>
+    <span class="sp"></span>
+    <a href="index.html">🏠 홈</a>
+    <a href="workbench.html#l1">🛠️ 워크벤치</a>
+    <a href="slides-2.html">2차시</a><a href="slides-3.html">3차시</a>
+  </div>
+</div>
+<script>
+var slides = document.querySelectorAll('.slide');
+var deck = document.getElementById('deck');
+var i = 0;
+function show(n){
+  i = Math.max(0, Math.min(slides.length - 1, n));
+  slides.forEach(function(s, k){ s.classList.toggle('on', k === i); });
+  document.getElementById('cur').textContent = (i + 1);
+  document.getElementById('fill').style.width = ((i + 1) / slides.length * 100) + '%';
+  document.getElementById('prev').disabled = (i === 0);
+  document.getElementById('next').disabled = (i === slides.length - 1);
+  try {
+    if (location.hash !== '#' + (i + 1)) history.replaceState(null, '', '#' + (i + 1));
+  } catch (e) { /* 미리보기 창이나 일부 환경에서는 주소를 바꿀 수 없음 — 넘어감 */ }
+  slides[i].scrollTop = 0;
+}
+document.addEventListener('keydown', function(e){
+  if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') { e.preventDefault(); show(i + 1); }
+  if (e.key === 'ArrowLeft'  || e.key === 'PageUp')  { e.preventDefault(); show(i - 1); }
+  if (e.key === 'Home') show(0);
+  if (e.key === 'End')  show(slides.length - 1);
+});
+document.getElementById('prev').addEventListener('click', function(){ show(i - 1); });
+document.getElementById('next').addEventListener('click', function(){ show(i + 1); });
+
+/* 발표 중에는 조작부를 감춘다. 마우스를 움직이면 2.5초 동안 나타난다. */
+var hideT = null;
+function peek(){
+  deck.classList.add('show');
+  clearTimeout(hideT);
+  hideT = setTimeout(function(){ deck.classList.remove('show'); }, 2500);
+}
+['mousemove','touchstart'].forEach(function(ev){
+  document.addEventListener(ev, peek, {passive:true});
+});
+document.querySelector('.bar').addEventListener('mouseenter', function(){
+  deck.classList.add('show'); clearTimeout(hideT);
+});
+document.addEventListener('focusin', function(e){
+  if (e.target.closest && e.target.closest('.bar')) { deck.classList.add('show'); clearTimeout(hideT); }
+});
+
+var t0 = null;
+document.querySelector('.stage').addEventListener('touchstart', function(e){ t0 = e.changedTouches[0].clientX; }, {passive:true});
+document.querySelector('.stage').addEventListener('touchend', function(e){
+  if (t0 === null) return;
+  var d = e.changedTouches[0].clientX - t0;
+  if (Math.abs(d) > 60) show(d < 0 ? i + 1 : i - 1);
+  t0 = null;
+}, {passive:true});
+function fromHash(){
+  var n = 0;
+  try { n = (parseInt((location.hash || '#1').slice(1), 10) - 1) || 0; } catch (e) { n = 0; }
+  return n;
+}
+addEventListener('hashchange', function(){
+  var n = fromHash();
+  if (n !== i) show(n);
+});
+show(fromHash());
+peek();
+</script>
+</body>
+</html>

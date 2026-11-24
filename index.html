@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#171A2E">
+<title>바이브코딩으로 만드는 교탁 도우미</title>
+<style>
+  :root{
+    --ink:#171A2E; --ink-2:#232846; --paper:#F3F3F8; --white:#fff;
+    --accent:#C8430E; --accent-dim:#A8370B; --accent-soft:#FFF0E8;
+    --spark:#FFD400; --line:#DCDCE8; --muted:#62648A; --dim:#A8ABD0;
+    --mono:ui-monospace,Consolas,"D2Coding",Menlo,monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);line-height:1.7;font-size:16px;
+    font-family:-apple-system,"Malgun Gothic","Apple SD Gothic Neo",sans-serif}
+  a{color:var(--accent-dim)}
+
+  /* ── 상단 내비 ── */
+  nav{background:var(--ink);position:sticky;top:0;z-index:30}
+  nav .in{max-width:1080px;margin:0 auto;padding:9px 20px;display:flex;flex-wrap:wrap;gap:4px}
+  nav a{color:var(--dim);text-decoration:none;padding:7px 12px;border-radius:7px;font-size:15px}
+  nav a:hover{background:#2B3053;color:#fff}
+  nav a.on{background:var(--accent);color:#fff}
+
+  /* ── 히어로 ── */
+  .hero{background:var(--ink);color:#fff;padding:46px 20px 60px}
+  .hero .in{max-width:1080px;margin:0 auto;display:grid;gap:40px;
+    grid-template-columns:minmax(0,1fr) minmax(0,440px);align-items:center}
+  .hero h1{font-size:clamp(30px,4.6vw,50px);line-height:1.16;margin:0 0 16px;
+    letter-spacing:-.04em;font-weight:700}
+  .hero .say{font-size:clamp(17px,2vw,21px);color:var(--dim);margin:0 0 26px;
+    line-height:1.55;max-width:24em}
+  .hero .say b{color:var(--spark);font-weight:700}
+  .badges{display:flex;flex-wrap:wrap;gap:7px}
+  /* 강의 자료 주소 — 수강생이 주소창에 그대로 입력하는 자리 */
+  .linkbox{margin-top:30px;padding:20px 24px;border:1px solid #39406B;
+    border-radius:12px;background:#1C2142;max-width:560px}
+  .linkbox .cap{display:block;font-size:15px;color:var(--dim);margin-bottom:10px}
+  .linkbox .url{display:block;font-size:clamp(30px,4.4vw,48px);font-weight:700;
+    color:var(--spark);letter-spacing:-.02em;line-height:1.15;word-break:keep-all}
+  .linkbox .how{display:block;margin-top:12px;font-size:14.5px;color:#C3C6E6;line-height:1.6}
+  .linkbox .how b{color:#fff}
+  .badges span{border:1px solid #39406B;color:#C3C6E6;border-radius:5px;
+    padding:5px 11px;font-size:13.5px}
+
+  /* ── 화면 프레임 ── */
+  .screen{border:1px solid var(--line);border-radius:10px;background:var(--white);
+    overflow:hidden}
+  .screen .chrome{background:var(--ink);color:var(--dim);display:flex;align-items:center;
+    gap:7px;padding:8px 13px;font-family:var(--mono);font-size:12.5px}
+  .screen .chrome i{width:8px;height:8px;border-radius:50%;background:#464C78;display:block;
+    flex:0 0 auto}
+  .screen .chrome i:first-child{background:var(--spark)}
+  .screen .chrome span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .hero .screen{border-color:#39406B;box-shadow:0 18px 50px rgba(0,0,0,.35)}
+
+  /* 히어로 안의 시연 */
+  .demo{padding:16px}
+  .demo .ask{font-family:var(--mono);font-size:13.5px;line-height:1.6;color:#3C4166;
+    background:#F0EFF9;border-radius:9px 9px 9px 2px;padding:10px 13px;margin:0 0 14px;
+    min-height:3.6em}
+  .demo .ask::after{content:"▌";color:var(--accent);animation:blink 1s steps(1) infinite}
+  .demo.done .ask::after{content:""}
+  @keyframes blink{50%{opacity:0}}
+  .demo .out{opacity:0;transition:opacity .4s}
+  .demo.done .out{opacity:1}
+  .demo .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;
+    max-width:258px;margin:0 auto 13px}
+  .demo .grid button{aspect-ratio:1/1;border:1px solid var(--line);background:#FAFAFD;
+    border-radius:7px;cursor:pointer;padding:0;font-family:inherit}
+  .demo .grid button.hot{background:var(--spark);border-color:#E6BF00}
+  .demo .grid button:disabled{cursor:default}
+  .demo .foot{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:13.5px;
+    color:var(--muted)}
+  .demo .score{font-family:var(--mono);font-size:19px;font-weight:700;color:var(--ink);
+    font-variant-numeric:tabular-nums}
+  .demo .go{border:0;background:var(--accent);color:#fff;border-radius:7px;padding:7px 14px;
+    font-size:14px;cursor:pointer;font-family:inherit}
+  .demo .go:hover{background:var(--accent-dim)}
+  .hero figcaption{color:#7A7FB4;font-size:13px;margin-top:10px;text-align:right}
+
+  /* ── 본문 ── */
+  main{max-width:1080px;margin:0 auto;padding:0 20px 90px}
+  section{padding-top:52px}
+  h2{font-size:25px;margin:0 0 6px;letter-spacing:-.03em;font-weight:700}
+  .lede{color:var(--muted);margin:0 0 22px;font-size:15.5px}
+
+  /* 페이지 카드 */
+  .pages{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr));gap:16px}
+  .pages a{text-decoration:none;color:inherit;display:block}
+  .pages .screen{height:100%;display:flex;flex-direction:column;transition:border-color .15s}
+  .pages a:hover .screen{border-color:var(--accent)}
+  .pages a:hover .chrome{background:var(--accent)}
+  .pages .pad{padding:17px 18px 19px;flex:1}
+  .pages .em{font-size:26px;line-height:1.2;display:block;margin-bottom:6px}
+  .pages b{font-size:17.5px;display:block;letter-spacing:-.02em}
+  .pages p{margin:4px 0 0;color:var(--muted);font-size:14.5px;line-height:1.55}
+
+  /* 여섯 번의 흐름 — 저장 단계로 묶는다 */
+  .stage{margin-bottom:22px}
+  .stage > h3{margin:0 0 3px;font-size:17px;letter-spacing:-.025em;
+    display:flex;align-items:center;gap:9px}
+  .stage > h3 .sn{background:var(--ink);color:var(--paper);width:24px;height:24px;
+    border-radius:4px;display:flex;align-items:center;justify-content:center;
+    font-size:14px;font-variant-numeric:tabular-nums;flex:0 0 auto}
+  .stage:last-of-type > h3 .sn{background:var(--spark);color:var(--ink)}
+  .stage > p{margin:0 0 12px;color:var(--muted);font-size:14px}
+  .ses{border-top:1px solid var(--line)}
+  .ses a{display:flex;gap:16px;align-items:baseline;padding:14px 4px;
+    border-bottom:1px solid var(--line);text-decoration:none;color:inherit}
+  .ses a:hover{background:var(--white)}
+  .ses .n{font-weight:700;color:var(--ink);font-size:15.5px;white-space:nowrap;
+    flex:0 0 auto;min-width:3.5em;font-variant-numeric:tabular-nums}
+  .ses .t{flex:1;min-width:0}
+  .ses .t > b{display:block;font-size:17px;letter-spacing:-.02em}
+  .ses .t span{color:var(--muted);font-size:14.5px}
+  .ses .go{color:var(--accent);font-size:14px;flex:0 0 auto}
+
+  /* 완성 도구 */
+  .tools{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:14px}
+  .tools a{text-decoration:none;color:inherit}
+  .tools .screen{transition:border-color .15s}
+  .tools a:hover .screen{border-color:var(--accent)}
+  .tools .pad{padding:14px 16px 16px}
+  .tools .pad > b{display:block;font-size:16.5px;letter-spacing:-.02em}
+  .tools span{color:var(--muted);font-size:14px}
+
+  /* 약속 · 안내 */
+  .rules{list-style:none;margin:0;padding:0;border-top:1px solid var(--line)}
+  .rules li{border-bottom:1px solid var(--line);padding:13px 0 13px 28px;position:relative;
+    font-size:16px}
+  .rules li::before{content:"";position:absolute;left:0;top:1.32em;width:9px;height:9px;
+    background:var(--accent);border-radius:2px}
+  .after{background:var(--white);border:1px solid var(--line);border-radius:10px;
+    padding:18px 21px}
+  .after p{margin:0 0 9px} .after p:last-child{margin:0}
+  .teacher{background:var(--ink);color:#C7CAE8;border-radius:10px;padding:17px 21px;
+    margin-top:30px;font-size:15px}
+  .teacher b{color:#fff} .teacher a{color:var(--spark)}
+
+  footer{max-width:1080px;margin:0 auto;padding:26px 20px 70px;color:var(--muted);
+    font-size:14px;border-top:1px solid var(--line)}
+  footer .url{font-family:var(--mono);font-size:13px;color:#8A8DB4}
+
+  :focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+  nav :focus-visible,.hero :focus-visible{outline-color:var(--spark)}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+  @media (max-width:860px){
+    .hero .in{grid-template-columns:1fr;gap:28px}
+    .hero figcaption{text-align:left}
+  }
+  @media (max-width:560px){
+    main{padding:0 14px 70px} .hero{padding:32px 14px 42px}
+    nav .in{padding:8px 14px}
+    .ses a{flex-wrap:wrap;gap:6px} .ses .go{display:none}
+  }
+
+  .pages{grid-template-columns:repeat(auto-fit,minmax(min(100%,225px),1fr))}
+  /* 히어로 — 보드 미리 보기 */
+  .demo .board{background:#0B0D1A;border-radius:14px;padding:9px;width:max-content;margin:0 auto 13px;
+    box-shadow:0 8px 24px rgba(0,0,0,.25)}
+  .demo .board img{display:block;width:216px;height:288px;border-radius:4px;image-rendering:pixelated}
+  .chips{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
+  .chips button{border:1px solid var(--line);background:#FAFAFD;border-radius:999px;padding:6px 12px;
+    font-size:13.5px;cursor:pointer;font-family:inherit;color:var(--ink)}
+  .chips button.on{background:var(--accent);border-color:var(--accent);color:#fff}
+  .tools .shotpad{background:#0B0D1A;padding:10px;display:flex;justify-content:center}
+  .tools .shotpad img{height:180px;width:auto;border-radius:3px;image-rendering:pixelated;display:block}
+  .take{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:16px}
+  .take a{text-decoration:none;color:inherit}
+  .take .screen{height:100%;transition:border-color .15s}
+  .take a:hover .screen{border-color:var(--accent)}
+  .take .pad{padding:17px 18px 19px}
+  .take b{font-size:17.5px;display:block;letter-spacing:-.02em}
+  .take p{margin:4px 0 0;color:var(--muted);font-size:14.5px;line-height:1.55}
+  .take .em{font-size:26px;line-height:1.2;display:block;margin-bottom:6px}
+
+</style>
+</head>
+<body>
+<nav><div class="in"><a class="on" href="index.html">🏠 홈</a><a href="slides-1.html">📺 강의 슬라이드</a><a href="workbench.html">🛠️ 실습 워크벤치</a><a href="playbook.html">📖 초보 가이드북</a></div></nav><div class="hero"><div class="in">
+  <div>
+    <h1>바이브코딩으로 만드는<br>교탁 도우미</h1>
+    <p class="say">코드를 한 줄도 쓰지 않고, 말로 설명해서 만듭니다.<br>
+       세 번이면 <b>PPT를 넘기고 남은 시간을 신호등으로 보여 주는 기기</b>가<br>교탁 위에 남습니다.</p>
+    <div class="badges">
+      <span>교사</span><span>3차시 · 50분</span><span>제미나이</span>
+      <span>아두이노 IDE</span><span>ESP32 2.8인치 터치 보드</span><span>블루투스</span><span>2인 1조</span>
+    </div>
+
+    <div class="linkbox">
+      <span class="cap">📱 연수 자료 주소</span>
+      <!-- ▼ 강사용 — 여기 한 곳만 바꾸세요 ▼ -->
+      <span class="url" id="shorturl">숏.한국/코드</span>
+      <!-- ▲ 여기까지 ▲ -->
+      <span class="how">검색창이 아니라 <b>브라우저 맨 위 주소창</b>에 그대로 입력하세요.</span>
+    </div>
+  </div>
+
+  <figure style="margin:0">
+    <div class="screen">
+      <div class="chrome"><i></i><i></i><i></i><span>gemini.google.com → 아두이노 IDE → 보드</span></div>
+      <div class="demo" id="demo">
+        <p class="ask" id="ask"></p>
+        <div class="out">
+          <div class="board"><img id="bimg" src="shots/board_timer_green.png" alt="보드 화면"></div>
+          <div class="chips" id="chips">
+            <button type="button" data-k="mine">💣 지뢰찾기</button>
+            <button type="button" data-k="timer" class="on">⏱️ 타이머 신호등</button>
+            <button type="button" data-k="pres">🎤 프레젠터</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <figcaption>말한 그대로 보드 화면이 생깁니다 — 눌러 보세요</figcaption>
+  </figure>
+</div></div>
+<main>
+<section><h2>어디로 갈까요</h2><p class="lede">연수 중에도, 끝난 뒤에도 같은 주소에서 다 찾을 수 있습니다.</p><div class="pages"><a href="workbench.html"><div class="screen"><div class="chrome"><i></i><i></i><i></i><span>workbench.html</span></div><div class="pad"><span class="em">🛠️</span><b>실습 워크벤치</b><p>코드 받기, 프롬프트, 완성 코드가 다 있습니다. 연수 중에 가장 많이 열게 될 곳입니다.</p></div></div></a><a href="slides-1.html"><div class="screen"><div class="chrome"><i></i><i></i><i></i><span>slides-1.html</span></div><div class="pad"><span class="em">📺</span><b>강의 슬라이드</b><p>차시별 슬라이드. 좌우 방향키로 넘깁니다. 보드 프레젠터로도 넘어갑니다.</p></div></div></a><a href="playbook.html"><div class="screen"><div class="chrome"><i></i><i></i><i></i><span>playbook.html</span></div><div class="pad"><span class="em">📖</span><b>초보 가이드북</b><p>설치, 올리는 법, AI 코드 넣는 법, 안 될 때 해결법.</p></div></div></a><a href="workbench.html#dl"><div class="screen"><div class="chrome"><i></i><i></i><i></i><span>downloads/ClassHelper_*.zip</span></div><div class="pad"><span class="em">⬇️</span><b>보드 코드 받기</b><p>연수용 시작 코드와 완성 코드 zip.</p></div></div></a><a href="playbook.html#pair"><div class="screen"><div class="chrome"><i></i><i></i><i></i><span>playbook.html#pair</span></div><div class="pad"><span class="em">👥</span><b>2인 1조로 하는 법</b><p>보드 하나 · 우리 조 노트북 하나. 운전석과 조수석, 자리 바꾸는 때.</p></div></div></a></div></section><section><h2>세 번의 흐름</h2><p class="lede">한 번에 한 칸씩. 마지막에는 첫 화면에서 세 기능을 골라 쓰는 기기 하나가 됩니다. 평소에는 탁상시계로 세워 둡니다.</p><div class="stage"><h3><span class="sn">1</span>보드에 올린다</h3><p>시작 코드를 올리고, AI에게 바꿀 줄만 받아 지뢰찾기를 고칩니다.</p><div class="ses"><a href="slides-1.html"><span class="n">1차시</span><span class="t"><b>보드에 첫 앱 올리고 지뢰찾기 바꾸기</b><span>업로드 환경 · 첫 화면에 내 반 이름 · 바꿀 줄만 받기</span></span><span class="go">슬라이드 열기</span></a></div></div><div class="stage"><h3><span class="sn">2</span>시간을 읽는다</h3><p>보드의 시계로 남은 시간을 재서 화면 색으로 보여 줍니다. 입력 → 판단 → 표시.</p><div class="ses"><a href="slides-2.html"><span class="n">2차시</span><span class="t"><b>남은 시간을 보여 주는 타이머 신호등</b><span>앱 규칙 · 새 앱 하나를 통째로 받기 · 우리 반 활동에 맞추기</span></span><span class="go">슬라이드 열기</span></a></div></div><div class="stage"><h3><span class="sn">3</span>PC를 움직인다</h3><p>보드를 블루투스 키보드·마우스로 노트북에 연결해 수업용 프레젠터를 만듭니다.</p><div class="ses"><a href="slides-3.html"><span class="n">3차시</span><span class="t"><b>보드를 수업용 프레젠터로</b><span>블루투스 연결 · 넘기기 · 포인터 · 타이머</span></span><span class="go">슬라이드 열기</span></a></div></div></section><section><h2>완성된 보드 화면 미리 보기</h2><p class="lede">세 번 뒤의 모습입니다. 실제 코드로 그린 화면이에요.</p><div class="tools"><a href="shots/board_home.png" target="_blank" rel="noopener"><div class="screen"><div class="chrome"><i></i><i></i><i></i><span>ClassHelper.ino</span></div><div class="shotpad"><img src="shots/board_home.png" alt="🏠 첫 화면" loading="lazy"></div><div class="pad"><b>🏠 첫 화면</b><span>기능 고르기 · 설정</span></div></div></a><a href="shots/board_clock.png" target="_blank" rel="noopener"><div class="screen"><div class="chrome"><i></i><i></i><i></i><span>app_clock.h</span></div><div class="shotpad"><img src="shots/board_clock.png" alt="🕰️ 탁상시계" loading="lazy"></div><div class="pad"><b>🕰️ 탁상시계</b><span>평소에는 교탁 위 시계 · 네 방향</span></div></div></a><a href="shots/board_mine_play.png" target="_blank" rel="noopener"><div class="screen"><div class="chrome"><i></i><i></i><i></i><span>app_mine.h</span></div><div class="shotpad"><img src="shots/board_mine_play.png" alt="💣 지뢰찾기" loading="lazy"></div><div class="pad"><b>💣 지뢰찾기</b><span>1차시 · 바꿀 줄만 받아 고치기</span></div></div></a><a href="shots/board_timer_yellow.png" target="_blank" rel="noopener"><div class="screen"><div class="chrome"><i></i><i></i><i></i><span>app_timer.h</span></div><div class="shotpad"><img src="shots/board_timer_yellow.png" alt="⏱️ 타이머 신호등" loading="lazy"></div><div class="pad"><b>⏱️ 타이머 신호등</b><span>2차시 · 남은 시간 → 화면 색</span></div></div></a><a href="shots/board_timer_red.png" target="_blank" rel="noopener"><div class="screen"><div class="chrome"><i></i><i></i><i></i><span>app_timer.h</span></div><div class="shotpad"><img src="shots/board_timer_red.png" alt="🔔 시간 끝" loading="lazy"></div><div class="pad"><b>🔔 시간 끝</b><span>2차시 · 알림음 · LED 깜빡 · 지난 시간</span></div></div></a><a href="shots/board_pres_slide.png" target="_blank" rel="noopener"><div class="screen"><div class="chrome"><i></i><i></i><i></i><span>app_presenter.h</span></div><div class="shotpad"><img src="shots/board_pres_slide.png" alt="▶️ 넘기기" loading="lazy"></div><div class="pad"><b>▶️ 넘기기</b><span>3차시 · ◀ ▶ · 처음부터 · 번호로 가기</span></div></div></a><a href="shots/board_pres_pointer.png" target="_blank" rel="noopener"><div class="screen"><div class="chrome"><i></i><i></i><i></i><span>app_presenter.h</span></div><div class="shotpad"><img src="shots/board_pres_pointer.png" alt="🖊️ 포인터" loading="lazy"></div><div class="pad"><b>🖊️ 포인터</b><span>3차시 · 레이저 · 펜 · 터치패드</span></div></div></a><a href="shots/board_pres_screen.png" target="_blank" rel="noopener"><div class="screen"><div class="chrome"><i></i><i></i><i></i><span>app_presenter.h</span></div><div class="shotpad"><img src="shots/board_pres_screen.png" alt="🔊 화면·소리" loading="lazy"></div><div class="pad"><b>🔊 화면·소리</b><span>3차시 · 검은 화면 · PC 볼륨</span></div></div></a><a href="shots/board_pres_timer.png" target="_blank" rel="noopener"><div class="screen"><div class="chrome"><i></i><i></i><i></i><span>app_presenter.h</span></div><div class="shotpad"><img src="shots/board_pres_timer.png" alt="⏱️ 타이머" loading="lazy"></div><div class="pad"><b>⏱️ 타이머</b><span>3차시 · PC 없이도 작동</span></div></div></a></div></section><section><h2>가져가서 해 보기</h2><p class="lede">연수에서 배운 방법 그대로, 보드 없이도 이어 갈 수 있습니다.</p><div class="take"><a href="https://biscuitbox.github.io/class-portal-v1/" target="_blank" rel="noopener"><div class="screen"><div class="chrome"><i></i><i></i><i></i><span>우리 반 홈페이지 예시</span></div><div class="pad"><span class="em">🏫</span><b>우리 반 홈페이지</b><p>칠판 TV에 띄우는 학급 안내판. 시간표·알림장·D-day·모둠 뽑기·타이머를 제미나이로 만들어 깃허브 페이지에 올립니다.</p></div></div></a><a href="https://penedu.web.app/board/tapdeck" target="_blank" rel="noopener"><div class="screen"><div class="chrome"><i></i><i></i><i></i><span>penedu.web.app/board/tapdeck</span></div><div class="pad"><span class="em">⌨️</span><b>탭덱 — 보드 버튼으로 PC 열기</b><p>다른 선생님이 만든 ESP32 터치 보드 활용 예. 단축키 16칸을 스트림덱처럼 꾸밉니다.</p></div></div></a></div></section><section><h2>연수 중 약속</h2><ul class="rules"><li>학생 이름, 성적, 연락처 같은 개인정보는 AI에게 적지 않습니다.</li><li>AI가 준 코드는 틀릴 때가 있습니다. 보드에 올려서 직접 눌러 확인합니다.</li><li>고치는 곳은 앱 파일 하나. 다른 탭은 건드리지 않습니다.</li><li>두 번 해도 안 되면 워크벤치의 완성 코드로 바꾸고 다음으로 넘어갑니다.</li><li>수업에 쓰는 기기의 책임은 교사에게 있습니다. 알림음 크기와 깜빡임이 학생에게 괜찮은지 봅니다.</li></ul></section><section><h2>연수가 끝난 뒤에도</h2><div class="after"><p><b>코드는 연수가 끝나도 워크벤치에서 언제든 다시 받을 수 있습니다.</b> 보드에 그대로 올리면 같은 기기가 됩니다. 첫 화면 → 설정의 <b>켜면 바로 시작</b>을 [발표]로 두면 꽂자마자 프레젠터가 켜집니다.</p><p>타이머 신호등 시간을 우리 반 활동에 맞추고, 프레젠터에 바로가기 장을 더해 보세요. 막히면 AI에게 물어보면 됩니다. 이제 묻는 법을 아니까요.</p></div><div class="teacher"><b>강사용</b> — 차시별 50분 운영은 <a href="script.html">진행 대본</a>, 준비물·사전 설치 안내문·실물 점검은 <a href="setup.html">강사 준비</a>에 있습니다. <b>1차시 업로드 환경</b>과 <b>3차시 블루투스 연결</b>이 두 고비입니다.</div></section></main>
+<footer>바이브코딩으로 만드는 교탁 도우미 · 교사 3차시 · 2026<br>강사 김시명 · 해연중학교<br><span class="url">biscuitbox.github.io/classhelper-e32/</span></footer>
+<script>
+(function(){
+  var SETS = {
+    mine:  { say: '쉬움 난이도의 지뢰를 6개로 줄여 줘.\n파일 전체 말고 바꿀 줄만 알려 줘.',
+             img: ['board_mine.png', 'board_mine_play.png'] },
+    timer: { say: '모둠 활동 시간이 줄어들면 화면 전체가\n초록 → 노랑 → 빨강으로 바뀌는 타이머 만들어 줘.',
+             img: ['board_timer_green.png', 'board_timer_yellow.png', 'board_timer_red.png'] },
+    pres:  { say: '보드를 누르면 PPT가 넘어가는 프레젠터 만들어 줘.\n레이저 포인터와 타이머도.',
+             img: ['board_pres_slide.png', 'board_pres_pointer.png', 'board_pres_screen.png', 'board_pres_timer.png'] }
+  };
+  var demo = document.getElementById('demo'), ask = document.getElementById('ask'),
+      bimg = document.getElementById('bimg'), chips = document.querySelectorAll('#chips button');
+  var reduce = false;
+  try { reduce = matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) {}
+  var typeT = null, cycT = null;
+  /* 미리 불러 두기 */
+  Object.keys(SETS).forEach(function(k){ SETS[k].img.forEach(function(f){ var i = new Image(); i.src = 'shots/' + f; }); });
+
+  function play(k){
+    var s = SETS[k];
+    chips.forEach(function(c){ c.classList.toggle('on', c.dataset.k === k); });
+    clearTimeout(typeT); clearInterval(cycT);
+    demo.classList.remove('done');
+    var idx = 0;
+    bimg.src = 'shots/' + s.img[0];
+    function cycle(){
+      cycT = setInterval(function(){ idx = (idx + 1) % s.img.length; bimg.src = 'shots/' + s.img[idx]; }, 1500);
+    }
+    if (reduce) { ask.textContent = s.say; demo.classList.add('done'); return; }
+    var p = 0;
+    (function type(){
+      ask.textContent = s.say.slice(0, p++);
+      if (p <= s.say.length) typeT = setTimeout(type, 26);
+      else typeT = setTimeout(function(){ demo.classList.add('done'); cycle(); }, 250);
+    })();
+  }
+  chips.forEach(function(c){ c.addEventListener('click', function(){ play(c.dataset.k); }); });
+  play('timer');
+})();
+</script>
+</body>
+</html>
